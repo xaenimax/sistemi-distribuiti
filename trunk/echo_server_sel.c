@@ -1,7 +1,7 @@
-/* Server iterativo dell'applicazione echo che utilizza la select
-   Ultima revisione: 8 ottobre 2008 */
+/* Cercasi volontario che sistema gli autori qui :-D */
 
 #include "basic.h"
+#include "funzioni_io.h"
 
 
 int main(int argc, char **argv)
@@ -14,7 +14,6 @@ int main(int argc, char **argv)
 
   struct sockaddr_in	servaddr, cliaddr;
   socklen_t		len;
-
 
   //apre socket in ascolto
   if ((listensd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -66,20 +65,9 @@ int main(int argc, char **argv)
 
 
 
-      //accedo alla struttura cliaddr e ne prlevo indirizzo ip e porta
-      /*
-      printf("Indirizzo del Client: indirizzo IP  %s, porta %d\n",
-              inet_ntop(AF_INET,
-              &cliaddr.sin_addr, buff, sizeof(buff)),
-              ntohs(cliaddr.sin_port) ); */
 
-      char comando[70] = "links -dump \"http://api.hostip.info/get_html.php?ip=";
-      //char indirizzo[16];  //conterrà l'ip del client
+      char comando_links[70] = "links -dump \"http://api.hostip.info/get_html.php?ip=";
 
-      //char indirizzo_ip[] = "51.160.80.2";
-      //char indirizzo_ip[] =
-    	  //inet_ntop(AF_INET, &cliaddr.sin_addr, buff, sizeof(buff));
-     // printf ("%s \n", indirizzo_ip);
 
       const char *indirizzo;
 
@@ -89,73 +77,45 @@ int main(int argc, char **argv)
       printf("Ricevuta richiesta da %s \n", indirizzo);
 
 
-      strcat(comando, indirizzo);
-      strcat(comando, "\"");
+      strcat(comando_links, indirizzo);
+      strcat(comando_links, "\"");
 
 
-      //printf ("prova segmentation fault: comando concatenato %s \n", comando);   OK
+              char * nazione_client = (char *)readStdout(comando_links);
+              printf(" stampa GEO da selettore %s \n", nazione_client);
 
-      /* prova comando shell lanciato da c
-      system("links -dump \"http://api.hostip.info/get_html.php?ip=51.160.80.2\""); */ //  OK
+// -------------------TEST PING ----------------------//   OK
 
+              char *comando_ping = "ping -c 4 74.125.43.105";
+              char * tempo_ping = (char *)readStdout(comando_ping);
+                            printf("stampa PING da selettore %s \n", tempo_ping);
 
-
-
-      //system(comando);  **********
-
-      char c = ' ';
-
-          FILE *stream_comando = popen(comando, "r");
-
-          FILE *stream_testo = fopen("testo","w+t");
-
-          char risposta[200];
+/*
 
 
-          while ((fscanf(stream_comando,"%c",&c)) == 1) // ripete il loop finche' fscan(); legge un carattere
+	char c2 = ' ';
 
-              {
-        	  char temp[ 2 ];
-        	  temp[ 0 ] = c;
-        	  temp[ 1 ] = '\0';
+    FILE *stream_comandoping = popen(comandoping, "r");
 
-                  printf("%c",c);   // scrive il carattere
-                  strcat(risposta, temp);
+    char tempi_risposta_ping[1500];
 
-                                  }
-          printf("\n");
+    while ((fscanf(stream_comandoping,"%c",&c2)) == 1) // ripete il loop finche' fscan(); legge un carattere
 
-          printf("%s", risposta);
-              pclose(stream_comando);
-              fclose(stream_testo);
+                  {
+            	  //rendo il carettere "appendibile" alla stringa
+            	  char temp2[ 2 ];
+            	  temp2[ 0 ] = c2;
+            	  temp2[ 1 ] = '\0';
 
+                      //printf("%c",c);   //controllo se riesco a salvare lo stdout in una variabile OK
+                      strcat(tempi_risposta_ping, temp2); //salvo lo stdout in una stringa
 
+                                      }
+              printf("\n");
 
-
-          //char mystring[5000];
-          //fgets(mystring,5000,stdout);
-          	//printf("\n\n\n\n\n%s",mystring);
-
-          //getdelim(&s, NULL, '\0', p);
-          //pclose(stream_comando);
-          //printf("%s \n", s);
-          //return 0;
-
-
-
-
-
-
-
-      /*
-      while ( fgets( line, sizeof line, fp))
-        {
-          printf("%s", line);
-        }
-        pclose(fp);
-        */
-
-
+              printf("%s", tempi_risposta_ping);
+                  pclose(stream_comandoping);
+*/
 
       /* Inserisce il descrittore del nuovo socket nel primo posto
          libero di client */
