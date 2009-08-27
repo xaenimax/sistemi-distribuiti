@@ -1,63 +1,85 @@
 #include "basic.h"
 
-
-
-/*******ottiene il tempo di ping*******/
-
-
-//fare
-
-
 /********* ottiene la nazione del client ********/
+	/* prende in argomento l'output della shell catturato con leggiStdout(..) *
+	 * e ne estrae il parametro di interesse                                  */
+
+
+int estraiPaese(char * risposta_hostinfo) {  //TODO chiamarla dal posto giusto
+    char * sottostringa;         //TODO e cambiare il tipo restituito in *char
+    char * sottostringa2;
+
+    if( (sottostringa = strstr(risposta_hostinfo, "Private Address")) != NULL) return 0; //printf("IP non pubblico");
+    else if( ((sottostringa = strstr(risposta_hostinfo, "(")) == NULL) || ((sottostringa2 = strstr(risposta_hostinfo, ")")) == NULL)  ) return 0; //non ho trovato il paese
+
+    else printf("paese: %c%c", sottostringa[1], sottostringa[2]); //printf("%c%c", sottostringa[1], sottostringa[2]);
+    return 0;
+ }
+
+
+/******* estrae il tempo di ping *******/
+
+
+int estraiTempo(char * risposta_ping) { //TODO cambia tipo restituito e funzioni chiamanti + converti char->int
+	char * sottostringa;
+	char * sottostringa2;
+	int lunghezza = 0, i = 0;
+
+	if( (sottostringa = strstr(risposta_ping, "=")) == NULL) return 0;
+	else if( ((sottostringa = strstr(sottostringa, "/")) == NULL) || ((sottostringa2 = strstr(++sottostringa, "/")) == NULL)  ) return 0; //il ping non ha dato risposta
+	else {
+		//printf("visualizza tempi (tutti) %s", sottostringa);
+		lunghezza = sottostringa2 - sottostringa;
+		//printf("lungo %d \n", lunghezza);
+		char tempo[lunghezza];
+		for (i = 0; i < lunghezza; i++)
+			{ tempo[i] = sottostringa[i]; } //sto estraendo i millisecondi...
+
+		printf("tempo: %s millisecondi", tempo);
+	     }
+
+	return 0;
+
+
+
+	return 0;
+}
+
 
 
 //fare
+
+
+
+
 
 /********* legge l'output di un programma dallo stdout della shell
  *            e lo salva in una variabile locale (stringa)         ********/
 
-
-
-
-             char * readStdout(char * comando) {
+             char * leggiStdout(char * comando) {
 
             	  char c = ' ';
 
-           //printf("mi è arrivato il comando %s \n \n", comando);
-            	            FILE *stream_comando = popen(comando, "r");
+            	  FILE *stream_comando = popen(comando, "r");
 
+            	  char output_temp[2000]; //dove verra' salvato l'output
 
-
-            	            char output_bash[3000];
-
-						    //printf("attualmente output_b contiene questo \n %s", output_bash);
-						    //printf("*******");
-
-            	            while ((fscanf(stream_comando,"%c",&c)) == 1) // ripete il loop finche' fscan(); legge un carattere
+            	  while ((fscanf(stream_comando,"%c",&c)) == 1) // ripete il loop finche' fscan(); legge un carattere
 
             	                {
-            	          	  //rendo il carettere "appendibile" alla stringa
-            	          	  char temp[ 2 ];
+            	          	  char temp[ 2 ];  //rendo il carettere "appendibile" alla stringa
             	          	  temp[ 0 ] = c;
             	          	  temp[ 1 ] = '\0';
+            	              strcat(output_temp, temp); //salvo lo stdout in una stringa (concatenando carattere per carattere)
+            	                 }  //fine while
 
-            	          	//salvo lo stdout in una stringa (concatenando carattere per carattere)
-            	                    strcat(output_bash, temp);
+            	  pclose(stream_comando);
 
-            	                                    }
+              char output_bash[2001]; //salvo il risultato in una nuova stringa e svuoto quella temporanea (perchè mi servirà successive volte)
+              strcpy(output_bash, output_temp);
+              strcpy(output_temp, " ");
 
-
-            	            //printf("%s", nazione_client);
-            	                pclose(stream_comando);
-
-
-              //printf("sto inviando al selettore l'output \n %s \n", output_bash);
-              char output2[3000];
-              strcpy(output2, output_bash);
-              //printf("sto ridando %s \n", output2);
-              strcpy(output_bash, " ");
-
-              return (output2);
+              return (output_bash);
               }
 /**********fine lettura stdout ******************/
 
