@@ -87,7 +87,7 @@ int main(int argc, char **argv)
       indirizzo = inet_ntop(AF_INET,
               &cliaddr.sin_addr, buff, sizeof(buff));
 
-      printf("Ricevuta richiesta da %s \n", indirizzo);
+      printf("\nRicevuta richiesta da %s \n\n", indirizzo);
 
 
       strcat(comando_links, indirizzo);
@@ -99,28 +99,33 @@ int main(int argc, char **argv)
               datiGEO_client = (char *)leggiStdout(comando_links);
 
 
-              printf(" **stampa GEO da selettore** \n %s \n", datiGEO_client);
+              //printf(" **stampa GEO da selettore** \n %s \n", datiGEO_client);
 
 
               printf("********* test estrazione PAESE *****************\n");
 
               sigla_nazione = (char *)estraiPaese(datiGEO_client);
-              if (sigla_nazione == NULL) printf("indirizzo IP privato/sconosciuto");
-              else printf(" **stampa PAESE %c%c ** \n", sigla_nazione[0], sigla_nazione[1]); //non so perchè ma se provo a stamparlo come stringa non stampa niente
 
-              printf("\n****************\n");
+              if (sigla_nazione == NULL) printf("indirizzo IP privato/sconosciuto");
+              else printf("PAESE: %c%c \n", sigla_nazione[0], sigla_nazione[1]); //non so perchè ma se provo a stamparlo come stringa non stampa niente
+
+              printf("\n****************\n\n");
+
 
 // -------------------TEST PING ----------------------//   OK
 
-              char *comando_ping = "ping -c 4 -q 74.125.43.105";
+              char comando_ping[50] = "ping -c 4 -q ";
+              strcat(comando_ping, indirizzo);
               char * tempo_ping = (char *)leggiStdout(comando_ping);
-              printf("**stampa PING da selettore** \n %s \n", tempo_ping);
+              char *millisec;
+              //printf("**stampa PING da selettore** \n %s \n", tempo_ping);
 
               printf("********* test estrazione PING *****************\n");
 
-              estraiTempo(tempo_ping);
+              millisec = (char *)estraiTempo(tempo_ping);
+              printf("tempo: %s millisecondi", millisec);
 
-              printf("\n****************\n");
+              printf("\n****************\n\n");
 
       /* Inserisce il descrittore del nuovo socket nel primo posto
          libero di client */

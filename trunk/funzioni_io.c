@@ -14,9 +14,6 @@
 
 #include "basic.h"
 
-int numeroServerDaContattare = 0;
-int numeroDiServerPresenti = 15;
-
 //======================== ottiene la nazione del client ===========================/
 	/* prende in argomento l'output della shell (precedentemente catturato
 	 * con leggiStdout(..)) e ne estrae il parametro di interesse
@@ -41,7 +38,6 @@ char * estraiPaese(char * risposta_hostinfo) {
     else {
     	paese[0] = sottostringa[1];
     	paese[1] = sottostringa[2];
-    	printf("paese::::: %s", paese);
 
     	return (paese);
         }
@@ -58,29 +54,27 @@ char * estraiPaese(char * risposta_hostinfo) {
 //================== estrae il tempo di ping ==============================/
 
 
-int estraiTempo(char * risposta_ping) { //TODO cambia tipo restituito e funzioni chiamanti + converti char->int
+char * estraiTempo(char * risposta_ping) {
 	char * sottostringa;
 	char * sottostringa2;
-	int lunghezza = 0, i = 0;
+	int lunghezza, i = 0;
 
-	if( (sottostringa = strstr(risposta_ping, "=")) == NULL) return 0;
-	else if( ((sottostringa = strstr(sottostringa, "/")) == NULL) || ((sottostringa2 = strstr(++sottostringa, "/")) == NULL)  ) return 0; //il ping non ha dato risposta
+	if( (sottostringa = strstr(risposta_ping, "=")) == NULL) return NULL;
+	else if( ((sottostringa = strstr(sottostringa, "/")) == NULL) || ((sottostringa2 = strstr(++sottostringa, "/")) == NULL)  ) return NULL; //il ping non ha dato risposta
 	else {
 		//printf("visualizza tempi (tutti) %s", sottostringa);
 		lunghezza = sottostringa2 - sottostringa;
 		//printf("lungo %d \n", lunghezza);
-		char tempo[lunghezza];
-		for (i = 0; i < lunghezza; i++)
+		char tempo[++lunghezza];
+		for (i = 0; i < (lunghezza-1); i++)
 			{ tempo[i] = sottostringa[i]; } //sto estraendo i millisecondi...
-
-		printf("tempo: %s millisecondi", tempo);
+        tempo[lunghezza-1] = '\0';
+		//printf("tempo: %s millisecondi", tempo);
+        return (tempo);
 	     }
 
-	return 0;
 
-
-
-	return 0;
+	return NULL;
 }
 
 
@@ -167,17 +161,4 @@ int readline(int fd, void *vptr, int maxlen)
 
   *ptr = 0;	/* per indicare la fine dell'input */
   return(n);	/* restituisce il numero di byte letti */
-}
-
-
-//Author: Alessandro Pacca
-//ritorna il numero del server da contattare e tiene traccia di quale server è stato contattato precedentemente. Da richiamare da qualche parte nel codice, appena posso vedo dove :)
-int RoundRobin() {
-
-	if(numeroServerDaContattare == numeroDiServerPresenti)
-		numeroServerDaContattare = 1;
-	else
-		numeroServerDaContattare++;
-
-	return numeroServerDaContattare;
 }
