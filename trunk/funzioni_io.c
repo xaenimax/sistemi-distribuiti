@@ -14,6 +14,9 @@
 
 #include "basic.h"
 
+int numeroServerDaContattare = 0;
+int numeroDiServerPresenti = 15;
+
 //======================== ottiene la nazione del client ===========================/
 	/* prende in argomento l'output della shell (precedentemente catturato
 	 * con leggiStdout(..)) e ne estrae il parametro di interesse
@@ -171,7 +174,7 @@ int readline(int fd, void *vptr, int maxlen)
 //ritorna il numero del server da contattare e tiene traccia di quale server è stato contattato precedentemente. Da richiamare da qualche parte nel codice, appena posso vedo dove :)
 int RoundRobin() {
 
-	if(numeroServerDaContattare == 15)
+	if(numeroServerDaContattare == numeroDiServerPresenti)
 		numeroServerDaContattare = 1;
 	else
 		numeroServerDaContattare++;
