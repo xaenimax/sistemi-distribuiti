@@ -4,7 +4,7 @@ SRC = client.c selettore.c funzioni_io.c algoritmi.c
 OBJ = $(SRC:.c=.o)
 
 all: $(OBJ) 
-	${CC} client.o -o client
+	${CC} client.o funzioni_io.o -o client
 	${CC} selettore.o funzioni_io.o -o selettore
 
 funzioni_io.o: funzioni_io.h

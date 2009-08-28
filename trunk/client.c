@@ -14,7 +14,7 @@
 
 
 #include "basic.h"
-
+#include "funzioni_io.h"
 
 void str_cli_echo_sel(FILE *fd, int sockfd);
 
@@ -56,9 +56,9 @@ int main(int argc, char **argv)
 /******/
 void str_cli_echo_sel(FILE *fd, int sockfd)
 {
-  int		maxd;
+  int		maxd, n;
   fd_set	rset;
-
+  char		sendline[MAXLINE], recvline[MAXLINE];
 
   FD_ZERO(&rset);	/* inizializza a 0 il set dei descrittori in lettura */
   for ( ; ; ) {
@@ -70,7 +70,32 @@ void str_cli_echo_sel(FILE *fd, int sockfd)
       exit(1);
     }
 
+    /* Controlla se il socket � leggibile */
+        if (FD_ISSET(sockfd, &rset)) {
+          if ((n = readline(sockfd, recvline, MAXLINE)) < 0) {
+            fprintf(stderr, "errore in readline\n");
+            exit(1);
+          }
+          if (n == 0) {
+            fprintf(stderr, "str_clisel_echo: il server ha interrotto l'interazione\n");
+            exit(1);
+          }
+          /* Stampa su stdout */
+          if (fputs(recvline, stdout) == EOF) {
+    		fprintf(stderr, "errore in fputs\n");
+            exit(1);
+          }
+        }
 
+        /* Controlla se il file � leggibile */
+        if (FD_ISSET(fileno(fd), &rset)) {
+          if (fgets(sendline, MAXLINE, fd) == NULL)
+            return;
+          if ((writen(sockfd, sendline, strlen(sendline))) < 0) {
+            fprintf(stderr, "errore in write\n");
+            exit(1);
+          }
+        }
 
 
   }

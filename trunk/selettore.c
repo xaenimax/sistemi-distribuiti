@@ -5,7 +5,7 @@
 *
 * Author:
 * Vienna Codeluppi <viecode@gmail.com>,
-* Alessandro Pacca <alessandro.pacca@gmail.com>,
+* Alessandro Pacca <alessandro.pacca@gmail.com>, <-----alessandro stai comodo tra me e marina? XD
 * Marina Dorelli  <aenima.rm@gmail.com> (C) 2009
 *
 * Copyright: See COPYING file that comes with this distribution
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
   int			ready, client[FD_SETSIZE];
   char			buff[MAXLINE];
   fd_set		rset, allset;
-
+  ssize_t		n;
   struct sockaddr_in	servaddr, cliaddr;
   socklen_t		len;
 
@@ -174,6 +174,26 @@ int main(int argc, char **argv)
       if ((socksd = client[i]) < 0 )
         /* se il descrittore non � stato selezionato viene saltato */
         continue;
+      if (FD_ISSET(socksd, &rset)) {
+        /* Se socksd � leggibile, invoca la readline */
+        if ((n = readline(socksd, buff, MAXLINE)) == 0) {
+        /* Se legge EOF, chiude il descrittore di connessione */
+          if (close(socksd) == -1) {
+            perror("errore in close");
+            exit(1);
+          }
+          /* Rimuove socksd dalla lista dei socket da controllare */
+	      FD_CLR(socksd, &allset);
+	      /* Cancella socksd da client */
+	      client[i] = -1;
+	    }
+	    else /* echo */
+          if (writen(socksd, buff, n) < 0 ) {
+	        fprintf(stderr, "errore in write\n");
+	        exit(1);
+          }
+        if (--ready <= 0) break;
+      }
 
     }
   }
