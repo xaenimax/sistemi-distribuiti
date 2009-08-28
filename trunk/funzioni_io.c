@@ -15,18 +15,31 @@
 #include "basic.h"
 
 /********* ottiene la nazione del client ********/
-	/* prende in argomento l'output della shell catturato con leggiStdout(..) *
-	 * e ne estrae il parametro di interesse                                  */
+	/* prende in argomento l'output della shell (precedentemente catturato
+	 * con leggiStdout(..)) e ne estrae il parametro di interesse              */
 
 
 int estraiPaese(char * risposta_hostinfo) {  //TODO chiamarla dal posto giusto
     char * sottostringa;         //TODO e cambiare il tipo restituito in *char
     char * sottostringa2;
+    char paese[3];
 
-    if( (sottostringa = strstr(risposta_hostinfo, "Private Address")) != NULL) return 0; //printf("IP non pubblico");
-    else if( ((sottostringa = strstr(risposta_hostinfo, "(")) == NULL) || ((sottostringa2 = strstr(risposta_hostinfo, ")")) == NULL)  ) return 0; //non ho trovato il paese
+    if( (sottostringa = strstr(risposta_hostinfo, "Private Address")) != NULL)
+    	{
+    	printf("indirizzo IP privato/sconosciuto");
+    	return 0;
+    	}
+    else if( ((sottostringa = strstr(risposta_hostinfo, "(")) == NULL) || ((sottostringa2 = strstr(risposta_hostinfo, ")")) == NULL)  )
+    	{
+    	printf("indirizzo IP privato/sconosciuto");
+    	return 0;
+    	}
+    else {
+    	paese[0] = sottostringa[1];
+    	paese[1] = sottostringa[2];
 
-    else printf("paese: %c%c", sottostringa[1], sottostringa[2]); //printf("%c%c", sottostringa[1], sottostringa[2]);
+    	printf("paese: %s", paese); //printf("%c%c", sottostringa[1], sottostringa[2]);
+    }
     return 0;
  }
 
