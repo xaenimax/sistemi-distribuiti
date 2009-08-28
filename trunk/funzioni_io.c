@@ -14,6 +14,40 @@
 
 #include "basic.h"
 
+//==================cerca continente vicino nel db===========================//
+
+char trovaContinente(char * nazione) {
+    char continente;
+	FILE * elenco_nazioni;
+	              elenco_nazioni = fopen("db_nazioni", "r");
+	              if (elenco_nazioni == NULL)
+	              {
+	            	  fprintf(stderr, "Problemi con l'apertura del file\n");
+	              }
+	              else
+	              {
+	            	  char  tmp[256]={0x0};
+	            	  while(elenco_nazioni != NULL && fgets(tmp, sizeof(tmp), elenco_nazioni)!=NULL)
+	            	          {
+	            	          if (strstr(tmp, nazione)) {
+	            	          //printf("Il continente piu vicino a %s ha il codice %c \n\n", nazione, tmp[3]);
+	            	          continente = tmp[3];
+	            	          }
+
+	            	          }
+	            	          if(elenco_nazioni!=NULL) fclose(elenco_nazioni);
+
+
+	            	  //fclose(elenco_nazioni);
+	              }
+
+
+	return continente;
+}
+
+
+
+
 //======================== ottiene la nazione del client ===========================/
 	/* prende in argomento l'output della shell (precedentemente catturato
 	 * con leggiStdout(..)) e ne estrae il parametro di interesse

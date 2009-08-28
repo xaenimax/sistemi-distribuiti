@@ -14,6 +14,7 @@
 
 #include "basic.h"
 #include "funzioni_io.h"
+#include "algoritmi.h"
 
 
 int main(int argc, char **argv)
@@ -77,10 +78,13 @@ int main(int argc, char **argv)
 
 
 
+//recupero informazioni sulla località del client
 
       char comando_links[70] = "links -dump \"http://api.hostip.info/get_html.php?ip=";
       char *datiGEO_client;
       char *sigla_nazione;
+      char sigla[3];
+      char continente;
 
       const char *indirizzo;
 
@@ -93,8 +97,8 @@ int main(int argc, char **argv)
       strcat(comando_links, indirizzo);
       strcat(comando_links, "\"");
 
-
-      //strcpy(comando_links, "links -dump \"http://api.hostip.info/get_html.php?ip=87.17.103.35\"");
+      //decommenta sotto x test su ip esterni
+      strcpy(comando_links, "links -dump \"http://api.hostip.info/get_html.php?ip=87.17.103.35\"");
 
               datiGEO_client = (char *)leggiStdout(comando_links);
 
@@ -107,9 +111,25 @@ int main(int argc, char **argv)
               sigla_nazione = (char *)estraiPaese(datiGEO_client);
 
               if (sigla_nazione == NULL) printf("indirizzo IP privato/sconosciuto");
-              else printf("PAESE: %c%c \n", sigla_nazione[0], sigla_nazione[1]); //non so perchè ma se provo a stamparlo come stringa non stampa niente
+
+              else {
+            	  sigla[0] = sigla_nazione[0];
+            	  sigla[1] = sigla_nazione[1];
+            	  sigla[2] = '\0';
+            	  printf("PAESE: %s \n", sigla); //non so perchè ma se provo a stamparlo come stringa non stampa niente
+              }
+
 
               printf("\n****************\n\n");
+
+//una volta nota la nazione si risale al continente di appartenenza
+
+
+              if (sigla_nazione!=NULL) {
+            	  continente = trovaContinente(sigla);
+            	  printf("Il continente piu vicino a %s ha il codice %c \n\n", sigla, continente);
+              }
+
 
 
 // -------------------TEST PING ----------------------//   OK
