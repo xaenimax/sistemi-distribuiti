@@ -80,6 +80,7 @@ int main(int argc, char **argv)
 
       char comando_links[70] = "links -dump \"http://api.hostip.info/get_html.php?ip=";
       char *datiGEO_client;
+      char *sigla_nazione;
 
       const char *indirizzo;
 
@@ -92,14 +93,20 @@ int main(int argc, char **argv)
       strcat(comando_links, indirizzo);
       strcat(comando_links, "\"");
 
-      strcpy(comando_links, "links -dump \"http://api.hostip.info/get_html.php?ip=87.17.103.35\"");
+
+      //strcpy(comando_links, "links -dump \"http://api.hostip.info/get_html.php?ip=87.17.103.35\"");
 
               datiGEO_client = (char *)leggiStdout(comando_links);
+
+
               printf(" **stampa GEO da selettore** \n %s \n", datiGEO_client);
+
 
               printf("********* test estrazione PAESE *****************\n");
 
-              estraiPaese(datiGEO_client);
+              sigla_nazione = (char *)estraiPaese(datiGEO_client);
+              if (sigla_nazione == NULL) printf("indirizzo IP privato/sconosciuto");
+              else printf(" **stampa PAESE %c%c ** \n", sigla_nazione[0], sigla_nazione[1]); //non so perchè ma se provo a stamparlo come stringa non stampa niente
 
               printf("\n****************\n");
 

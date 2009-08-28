@@ -14,40 +14,45 @@
 
 #include "basic.h"
 
-int numeroServerDaContattare;
-int numeroDiServerPresenti = 15;
-
-/********* ottiene la nazione del client ********/
+//======================== ottiene la nazione del client ===========================/
 	/* prende in argomento l'output della shell (precedentemente catturato
-	 * con leggiStdout(..)) e ne estrae il parametro di interesse              */
+	 * con leggiStdout(..)) e ne estrae il parametro di interesse
+	 */
 
 
-int estraiPaese(char * risposta_hostinfo) {  //TODO chiamarla dal posto giusto
-    char * sottostringa;         //TODO e cambiare il tipo restituito in *char
+char * estraiPaese(char * risposta_hostinfo) {
+    char * sottostringa;
     char * sottostringa2;
     char paese[3];
 
     if( (sottostringa = strstr(risposta_hostinfo, "Private Address")) != NULL)
     	{
-    	printf("indirizzo IP privato/sconosciuto");
-    	return 0;
+    	//indirizzo IP privato/sconosciuto
+    	return NULL;
     	}
     else if( ((sottostringa = strstr(risposta_hostinfo, "(")) == NULL) || ((sottostringa2 = strstr(risposta_hostinfo, ")")) == NULL)  )
     	{
-    	printf("indirizzo IP privato/sconosciuto");
-    	return 0;
+    	//indirizzo IP privato/sconosciuto
+    	return NULL;
     	}
     else {
     	paese[0] = sottostringa[1];
     	paese[1] = sottostringa[2];
+    	printf("paese::::: %s", paese);
 
-    	printf("paese: %s", paese); //printf("%c%c", sottostringa[1], sottostringa[2]);
-    }
-    return 0;
+    	return (paese);
+        }
+    printf("ora paese vale %s \n", paese);
+    return NULL;
  }
 
 
-/******* estrae il tempo di ping *******/
+
+
+
+
+
+//================== estrae il tempo di ping ==============================/
 
 
 int estraiTempo(char * risposta_ping) { //TODO cambia tipo restituito e funzioni chiamanti + converti char->int
@@ -159,16 +164,4 @@ int readline(int fd, void *vptr, int maxlen)
 
   *ptr = 0;	/* per indicare la fine dell'input */
   return(n);	/* restituisce il numero di byte letti */
-}
-
-//Author: Alessandro Pacca
-//ritorna il numero del server da contattare e tiene traccia di quale server è stato contattato precedentemente. Da richiamare da qualche parte nel codice, appena posso vedo dove :)
-int RoundRobin() {
-
-	if(numeroServerDaContattare == 15)
-		numeroServerDaContattare = 1;
-	else
-		numeroServerDaContattare++;
-
-	return numeroServerDaContattare;
 }
