@@ -1,11 +1,11 @@
 /*
 *  C Implementation: da decidere
 *
-* Description: 
+* Description:
 *
 * Author:
 * Vienna Codeluppi <viecode@gmail.com>,
-* Alessandro Pacca <alessandro.pacca@gmail.com>, 
+* Alessandro Pacca <alessandro.pacca@gmail.com>,
 * Marina Dorelli  <aenima.rm@gmail.com> (C) 2009
 *
 * Copyright: See COPYING file that comes with this distribution
@@ -72,7 +72,8 @@ int estraiTempo(char * risposta_ping) { //TODO cambia tipo restituito e funzioni
 
              char * leggiStdout(char * comando) {
 
-            	  char c = ' ';
+            	 char output_bash[2001]; //salvo il risultato in una nuova stringa e svuoto quella temporanea (perchè mi servirà successive volte)
+            	 char c = ' ';
 
             	  FILE *stream_comando = popen(comando, "r");
 
@@ -89,7 +90,7 @@ int estraiTempo(char * risposta_ping) { //TODO cambia tipo restituito e funzioni
 
             	  pclose(stream_comando);
 
-              char output_bash[2001]; //salvo il risultato in una nuova stringa e svuoto quella temporanea (perchè mi servirà successive volte)
+
               strcpy(output_bash, output_temp);
               strcpy(output_temp, " ");
 
@@ -97,7 +98,7 @@ int estraiTempo(char * risposta_ping) { //TODO cambia tipo restituito e funzioni
               }
 /**********fine lettura stdout ******************/
 
-
+             char output_bash[2001]; //salvo il risultato in una nuova stringa e svuoto quella temporanea (perchè mi servirà successive volte)
 
 /******/
 

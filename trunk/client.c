@@ -1,19 +1,17 @@
 /*
 *  C Implementation: da decidere
 *
-* Description: 
+* Description:
 *
 * Author:
 * Vienna Codeluppi <viecode@gmail.com>,
-* Alessandro Pacca <alessandro.pacca@gmail.com>, 
+* Alessandro Pacca <alessandro.pacca@gmail.com>,
 * Marina Dorelli  <aenima.rm@gmail.com> (C) 2009
 *
 * Copyright: See COPYING file that comes with this distribution
 *
 */
 
-/* Client TCP per il servizio di echo che utilizza la funzione select()
-   Ultima revisione: 14 gennaio 2008 */
 
 #include "basic.h"
 
@@ -58,7 +56,7 @@ int main(int argc, char **argv)
 /******/
 void str_cli_echo_sel(FILE *fd, int sockfd)
 {
-  int		maxd, n;
+  int		maxd;
   fd_set	rset;
 
 
