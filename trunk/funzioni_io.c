@@ -1,3 +1,17 @@
+/*
+*  C Implementation: da decidere
+*
+* Description: 
+*
+* Author:
+* Vienna Codeluppi <viecode@gmail.com>,
+* Alessandro Pacca <alessandro.pacca@gmail.com>, 
+* Marina Dorelli  <aenima.rm@gmail.com> (C) 2009
+*
+* Copyright: See COPYING file that comes with this distribution
+*
+*/
+
 #include "basic.h"
 
 /********* ottiene la nazione del client ********/

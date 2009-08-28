@@ -1,3 +1,17 @@
+/*
+*  C Implementation: da decidere
+*
+* Description: 
+*
+* Author:
+* Vienna Codeluppi <viecode@gmail.com>,
+* Alessandro Pacca <alessandro.pacca@gmail.com>, 
+* Marina Dorelli  <aenima.rm@gmail.com> (C) 2009
+*
+* Copyright: See COPYING file that comes with this distribution
+*
+*/
+
 /* Client TCP per il servizio di echo che utilizza la funzione select()
    Ultima revisione: 14 gennaio 2008 */
 

@@ -1,4 +1,17 @@
-/* Cercasi volontario che sistema gli autori qui :-D */
+/*
+*  C Implementation: da decidere
+*
+* Description: 
+*
+* Author:
+* Vienna Codeluppi <viecode@gmail.com>,
+* Alessandro Pacca <alessandro.pacca@gmail.com>, 
+* Marina Dorelli  <aenima.rm@gmail.com> (C) 2009
+*
+* Copyright: See COPYING file that comes with this distribution
+*
+*/
+
 
 #include "basic.h"
 #include "funzioni_io.h"
