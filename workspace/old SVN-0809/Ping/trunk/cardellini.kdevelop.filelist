@@ -1,0 +1,12 @@
+# KDevelop Custom Project File List
+Makefile
+basic.h
+client.c
+funzioni_io.c
+funzioni_io.h
+ping source
+ping source/ping.c
+pong
+pong/pong.c
+provoThread.c
+selettore.c
