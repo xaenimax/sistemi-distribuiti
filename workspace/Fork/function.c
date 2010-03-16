@@ -48,6 +48,13 @@ void connectSocket(int *socket, struct sockaddr_in *indirizzoSuCuiEffettuareLaCo
 		}
 }
 
+void acceptSocket(int *socketDiConnessione, int *socketDiListen) {
+	if ((*socketDiConnessione = accept(*socketDiListen, (struct sockaddr *)NULL, NULL)) < 0) {
+		printf("%d: ", getpid());
+		perror("errore in accept");
+		exit(-1);
+	}
+}
 
 //effettua la close sul socket
 void closeSocket(int *socketDaChiudere) {

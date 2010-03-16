@@ -22,6 +22,8 @@
 
 void mainDelFiglio();
 void mainDelFiglioDiServizio();
+void acceptFiglioNormale();
+void acceptFiglioDiServizio();
 void interrompi();
 
 int pid, pidServizio, i;
@@ -31,9 +33,6 @@ struct sockaddr_in ricevutoSuAddr;
 fd_set descrittoriDiLettura, tuttiIdescrittori;
 	
 main() {
-	
-	//Gestisce l'interruzione con ctrl-c
-	(void) signal(SIGINT, interrompi);
 
 	printf("%d: Avvio del server...\n", getpid());
 	
@@ -49,34 +48,34 @@ main() {
 	listenSocket(&listensd, BACKLOG);
 	listenSocket(&listensdDiServizio, BACKLOG);
 	
-	FD_ZERO(&tuttiIdescrittori);
-	FD_SET(listensd, &tuttiIdescrittori);
-	FD_SET(listensdDiServizio, &tuttiIdescrittori);
+	pid = fork();
 	
-	printf("%d: Server avviato\n", getpid());
+	acceptFiglioNormale();
 	
-	for ( ; ; ) {
-	
-		//metto tutti i descrittori di lettura nell'insieme di tutti i descrittori
-		descrittoriDiLettura = tuttiIdescrittori;
-		int ready;
+	if(pid != 0) {
+			//Gestisce l'interruzione con ctrl-c
+		(void) signal(SIGINT, interrompi);
 		
-		//vado a fare un pool per vedere quale tra i descrittori di lettura è pronto per primo. Il primo NULL si riferisce ai descrittori di scrittura che non ho
-		//il secondo alle eccezioni, il terzo al timeout che imposto a zero in modo tale da fare la select sempre fino a che non c'è un descrittore pronto
-		if(ready = select(FD_SETSIZE, &descrittoriDiLettura, NULL, NULL, NULL) < 0) {
-			printf("%d: ", getpid());
-			perror("errore in select");
-			exit(-1);
-		}
+		//il padre crea un altro figlio per le richieste di servizio
+		pid = fork();
+		acceptFiglioDiServizio();
+			
+		printf("%d: Server avviato\n", getpid());
 		
-		if(FD_ISSET(listensd, &descrittoriDiLettura)) {
-			//connessione accettata normale
-			if ((connsd = accept(listensd, (struct sockaddr *)NULL, NULL)) < 0) {
-				printf("%d: ", getpid());
-				perror("errore in accept");
-				exit(-1);
-			}
-			//se è stata accettata una connessione normale...
+		// -1 sta per aspetto qualasiasi figlio che termina, 0 sta per nessuna opzione, rimango bloccato fino a che non muore qualche figlio.
+		waitpid(-1, &pid, 0);
+		
+		printf("%d: Il server è stato arrestato per qualche errore!\n", getpid());
+		exit(0);
+	}
+
+}
+
+void acceptFiglioNormale() {
+	if(pid == 0) {
+		while(1) {
+			acceptSocket(&connsd, &listensd);
+					//se è stata accettata una connessione normale...
 			if(connsd != 0) {
 				printf("%d: Creazione di un figlio in corso...\n", getpid());
 				
@@ -95,25 +94,24 @@ main() {
 				
 			}
 		}
-		
-		if(FD_ISSET(listensdDiServizio, &descrittoriDiLettura)) {
-			//connessione accettata normale
-			if ((connsd = accept(listensdDiServizio, (struct sockaddr *)NULL, NULL)) < 0) {
-				printf("%d: ", getpid());
-				perror("errore in accept");
-				exit(-1);
-			}
-			//se è stata accettata una connessione normale...
+	}
+}
+
+void acceptFiglioDiServizio() {
+
+	if(pid == 0) {
+		while(1) {
+			acceptSocket(&connsd, &listensdDiServizio);
+			
+					//se è stata accettata una connessione normale...
 			if(connsd != 0) {
 				printf("%d: Creazione di un figlio di servizio in corso...\n", getpid());
 				
 				pid = fork();
 			
-// 				printf("%d: Figlio creato\n", getpid());
+		// 				printf("%d: Figlio creato\n", getpid());
 				
 				mainDelFiglioDiServizio();
-			
-				int ritornoPid;
 				
 				//aspetto che un figlio termini
 				waitpid(-1, &pidServizio, WNOHANG);
@@ -121,12 +119,9 @@ main() {
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
 				closeSocket(&connsd);
-				
 			}
-		}		
-		
+		}
 	}
-	exit(0);
 }
 
 void mainDelFiglio() {
