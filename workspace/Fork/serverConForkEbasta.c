@@ -30,6 +30,7 @@ int pid, pidServizio, i;
 int listensd, connsd, listensdDiServizio, connsdDiServizio, connessioneNormale;
 struct sockaddr_in servaddr, servaddrDiServizio;
 struct sockaddr_in ricevutoSuAddr;
+const char directoryDeiFile[] = "~/workspace/Fork/";
 	
 main() {
 
@@ -189,12 +190,36 @@ void mainDelFiglioDiServizio() {
 			while((n = recv(connessioneNormale, recvline, MAXLINE, 0)) > 0) {
 				printf("  %d: Ho ricevuto: %s.\n", getpid(), recvline, n);
 			
-// 			/* scrive sul socket di connessione il contenuto di buff */
-				if (send(connessioneNormale, buff, strlen(buff), 0) != strlen(buff)) {
-					printf("  %d: ", getpid());
-					perror("errore in write del figlio\n"); 
-					exit(-1);
+				if(strcmp(recvline, "Lista File") == 0) {
+					int numeroDiFileTrovati = 0;
+					struct direct **fileTrovati;
+					
+					printf("  %d: Invio la lista file, come richiesto.\n", getpid());
+				
+// 					chdir(directoryDeiFile);
+					
+					numeroDiFileTrovati = scandir(directoryDeiFile, &fileTrovati, NULL, NULL);
+
+						/* If no files found, make a non-selectable menu item */
+					if 		(numeroDiFileTrovati <= 0) {
+						printf("  %d: Nessun file trovato!\n", getpid());
+					}
+					
+					printf("  %d: Numero di file trovati: %d\n", getpid(), numeroDiFileTrovati);
+					
+					for (i=1;i<numeroDiFileTrovati+1;++i)
+							printf("  %d: %s  ", getpid(), fileTrovati[i-1]->d_name);
+					printf("\n");
+
+					
+					
+					sendData(&connessioneNormale, &buff);
 				}
+				
+				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
+				else
+					closeSocket(&connessioneNormale);
+				
 			}
 			
 			printf("  %d: Richiesta elaborata!\n", getpid());

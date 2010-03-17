@@ -56,6 +56,16 @@ void acceptSocket(int *socketDiConnessione, int *socketDiListen) {
 	}
 }
 
+void sendData (int *socketConnesso, char *buff) {
+	
+	if (send(*socketConnesso, (char*)buff, strlen((char*)buff), 0) != strlen((char*)buff)) {
+		printf("  %d: ", getpid());
+		perror("errore in write del figlio\n"); 
+		exit(-1);
+	}
+}
+
+
 //effettua la close sul socket
 void closeSocket(int *socketDaChiudere) {
 	if (close(*socketDaChiudere) == -1) {  /* chiude la connessione */

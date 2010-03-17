@@ -10,3 +10,5 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/wait.h>
+
+#include <sys/dir.h>

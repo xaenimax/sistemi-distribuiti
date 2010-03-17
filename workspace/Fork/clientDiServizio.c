@@ -45,7 +45,7 @@ main() {
 		getsockname(socketCl, (struct sockaddr *) &servaddr, &lunghezzaAddr);
 		printf("%d: Il socket ha indirizzo: %s:%d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
 		
-		snprintf(bufferDiInvio, sizeof(bufferDiInvio), "A cazzo di cane.");
+		strcpy(bufferDiInvio, "Lista File");
 
 		printf("Invio i dati al server:\n");
 		
