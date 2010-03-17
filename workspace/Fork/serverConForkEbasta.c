@@ -30,7 +30,6 @@ int pid, pidServizio, i;
 int listensd, connsd, listensdDiServizio, connsdDiServizio, connessioneNormale;
 struct sockaddr_in servaddr, servaddrDiServizio;
 struct sockaddr_in ricevutoSuAddr;
-fd_set descrittoriDiLettura, tuttiIdescrittori;
 	
 main() {
 
