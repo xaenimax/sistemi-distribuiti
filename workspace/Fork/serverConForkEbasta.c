@@ -51,6 +51,7 @@ main() {
 	
 	acceptFiglioNormale();
 	
+	//ciclo di istruzioni del server padre. E' > 0 perché se PID < 0 ho avuto problemi nella creazione del figlio
 	if(pid > 0) {
 			//Gestisce l'interruzione con ctrl-c
 		(void) signal(SIGINT, interrompi);
@@ -87,13 +88,9 @@ void acceptFiglioNormale() {
 			
 				int ritornoPid;
 				
-				//aspetto che un figlio termini
-// 				waitpid(-1, &pid, WNOHANG);
-				
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
 				closeSocket(&connsd);
-				
 			}
 		}
 	}
@@ -118,9 +115,6 @@ void acceptFiglioDiServizio() {
 				
 				mainDelFiglioDiServizio();
 				
-				//aspetto che un figlio termini
-// 				waitpid(-1, &pidServizio, WNOHANG);
-				
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
 				closeSocket(&connessioneNormale);
@@ -129,6 +123,7 @@ void acceptFiglioDiServizio() {
 	}
 }
 
+//Questo main dovrà essere usato per gestire il trasferimento di file
 void mainDelFiglio() {
 	
 		if(pid == 0) 
@@ -166,6 +161,7 @@ void mainDelFiglio() {
 		}
 }
 
+//questo main dovrà essere usato per gestire le richieste di servizio.
 void mainDelFiglioDiServizio() {
 	
 		if(pid == 0) 
@@ -200,8 +196,6 @@ void mainDelFiglioDiServizio() {
 					exit(-1);
 				}
 			}
-
-
 			
 			printf("  %d: Richiesta elaborata!\n", getpid());
 			
