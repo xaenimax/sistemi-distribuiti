@@ -30,7 +30,7 @@ int pid, pidServizio, i;
 int listensd, connsd, listensdDiServizio, connsdDiServizio, connessioneNormale;
 struct sockaddr_in servaddr, servaddrDiServizio;
 struct sockaddr_in ricevutoSuAddr;
-const char directoryDeiFile[] = "~/workspace/Fork/";
+const char directoryDeiFile[] = "/home/alessandro/workspace/Fork/";
 	
 main() {
 
@@ -208,10 +208,8 @@ void mainDelFiglioDiServizio() {
 					printf("  %d: Numero di file trovati: %d\n", getpid(), numeroDiFileTrovati);
 					
 					for (i=1;i<numeroDiFileTrovati+1;++i)
-							printf("  %d: %s  ", getpid(), fileTrovati[i-1]->d_name);
+							printf("  %d: %s  \n", getpid(), fileTrovati[i-1]->d_name);
 					printf("\n");
-
-					
 					
 					sendData(&connessioneNormale, &buff);
 				}
@@ -219,7 +217,6 @@ void mainDelFiglioDiServizio() {
 				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
 				else
 					closeSocket(&connessioneNormale);
-				
 			}
 			
 			printf("  %d: Richiesta elaborata!\n", getpid());
