@@ -45,7 +45,7 @@ main() {
 		getsockname(socketCl, (struct sockaddr *) &servaddr, &lunghezzaAddr);
 		printf("%d: Il socket ha indirizzo: %s:%d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
 		
-		snprintf(bufferDiInvio, sizeof(bufferDiInvio), "A cazzo di cane\r\n");
+		snprintf(bufferDiInvio, sizeof(bufferDiInvio), "A cazzo di cane.");
 
 		printf("Invio i dati al server:\n");
 		
@@ -61,15 +61,15 @@ main() {
 		bzero(recvline, MAXLINE);		
 		
 		while((n = recv(socketCl, recvline, MAXLINE, 0)) > 0) {
-			recvline[n] = 0;
-		}
-		
-		printf("Dati ricevuti: %s\n", recvline);
-		
-		if(n < 0)
-			perror("Errore nella read");
+					
+			printf("Dati ricevuti: %s\n", recvline);
+			
+			if(n < 0)
+				perror("Errore nella read");
 
-		close(socketCl);
+			close(socketCl);
+		}
+
 		//sleep(1);
 // 	}
 	exit(0);

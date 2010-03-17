@@ -27,7 +27,7 @@ void acceptFiglioDiServizio();
 void interrompi();
 
 int pid, pidServizio, i;
-int listensd, connsd, listensdDiServizio, connsdDiServizio;
+int listensd, connsd, listensdDiServizio, connsdDiServizio, connessioneNormale;
 struct sockaddr_in servaddr, servaddrDiServizio;
 struct sockaddr_in ricevutoSuAddr;
 fd_set descrittoriDiLettura, tuttiIdescrittori;
@@ -52,7 +52,7 @@ main() {
 	
 	acceptFiglioNormale();
 	
-	if(pid != 0) {
+	if(pid > 0) {
 			//Gestisce l'interruzione con ctrl-c
 		(void) signal(SIGINT, interrompi);
 		
@@ -73,11 +73,14 @@ main() {
 
 void acceptFiglioNormale() {
 	if(pid == 0) {
+		
+		printf(" %d: In attesa di una richiesta normale...\n", getpid());
+	
 		while(1) {
 			acceptSocket(&connsd, &listensd);
 					//se è stata accettata una connessione normale...
 			if(connsd != 0) {
-				printf("%d: Creazione di un figlio in corso...\n", getpid());
+				printf(" %d: Creazione di un figlio in corso...\n", getpid());
 				
 				pid = fork();
 			
@@ -86,7 +89,7 @@ void acceptFiglioNormale() {
 				int ritornoPid;
 				
 				//aspetto che un figlio termini
-				waitpid(-1, &pid, WNOHANG);
+// 				waitpid(-1, &pid, WNOHANG);
 				
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
@@ -100,12 +103,15 @@ void acceptFiglioNormale() {
 void acceptFiglioDiServizio() {
 
 	if(pid == 0) {
+		
+		printf(" %d: In attesa di una richiesta di servizio...\n", getpid());
+		
 		while(1) {
-			acceptSocket(&connsd, &listensdDiServizio);
+			acceptSocket(&connessioneNormale, &listensdDiServizio);
 			
 					//se è stata accettata una connessione normale...
-			if(connsd != 0) {
-				printf("%d: Creazione di un figlio di servizio in corso...\n", getpid());
+			if(connessioneNormale != 0) {
+				printf(" %d: Creazione di un figlio di servizio in corso...\n", getpid());
 				
 				pid = fork();
 			
@@ -114,11 +120,11 @@ void acceptFiglioDiServizio() {
 				mainDelFiglioDiServizio();
 				
 				//aspetto che un figlio termini
-				waitpid(-1, &pidServizio, WNOHANG);
+// 				waitpid(-1, &pidServizio, WNOHANG);
 				
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
-				closeSocket(&connsd);
+				closeSocket(&connessioneNormale);
 			}
 		}
 	}
@@ -131,7 +137,7 @@ void mainDelFiglio() {
 			time_t        ticks;
 			char          buff[MAXLINE];
 			
-			printf("%d: Presa in consegna richiesta normale\n", getpid());
+			printf("  %d: Presa in consegna richiesta normale.\n", getpid());
 			
 			memset((void *)&ricevutoSuAddr, 0, sizeof(ricevutoSuAddr));
 			
@@ -139,7 +145,7 @@ void mainDelFiglio() {
 			
 			getpeername(connsd, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
 			
-			printf("%d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
+			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 				
 			/* accetta una connessione con un client */
 			ticks = time(NULL); /* legge l'orario usando la chiamata di sistema time */
@@ -150,12 +156,12 @@ void mainDelFiglio() {
 
 			/* scrive sul socket di connessione il contenuto di buff */
 			if (write(connsd, buff, strlen(buff)) != strlen(buff)) {
-				printf("%d: ", getpid());
+				printf("  %d: ", getpid());
 				perror("errore in write del figlio\n"); 
 				exit(-1);
 			}
 			
-			printf("%d: Richiesta elaborata!\n", getpid());
+			printf("  %d: Richiesta elaborata!\n", getpid());
 			
 			exit(0);
 		}
@@ -168,46 +174,43 @@ void mainDelFiglioDiServizio() {
 			int n;
 			char buff[MAXLINE];
 			char recvline[MAXLINE];
-			int socketDiScrittura;
-			
-			createSocketStream(&socketDiScrittura);
 
+			closeSocket(&listensdDiServizio);
+			
 // 			strcpy(buff, "Risposta a cazzo di cane");
 			snprintf(buff, sizeof(buff), "Dai dai dai..");
 			
-			printf("%d: Presa in consegna richiesta di servizio \n", getpid());
+			printf("  %d: Presa in consegna richiesta di servizio.\n", getpid());
 			
 			memset((void *)&ricevutoSuAddr, 0, sizeof(ricevutoSuAddr));
 			
 			int lunghezzaAddr = sizeof(ricevutoSuAddr);
 			
 			//se voglio sapere chi mi manda la richiesta..
-			getpeername(connsd, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
+			getpeername(connessioneNormale, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
 			
-			printf("%d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
+			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 
-			while((n = recv(connsd, recvline, MAXLINE, 0)) > 0) {
-				recvline[n] = 0;
-			}
-
-			printf("%d: Ho ricevuto: %s\n", getpid(), recvline);
+			while((n = recv(connessioneNormale, recvline, MAXLINE, 0)) > 0) {
+				printf("  %d: Ho ricevuto: %s.\n", getpid(), recvline, n);
 			
 // 			/* scrive sul socket di connessione il contenuto di buff */
-			if (send(connsd, buff, strlen(buff), 0) != strlen(buff)) {
-				printf("%d: ", getpid());
-				perror("errore in write del figlio\n"); 
-				exit(-1);
+				if (send(connessioneNormale, buff, strlen(buff), 0) != strlen(buff)) {
+					printf("  %d: ", getpid());
+					perror("errore in write del figlio\n"); 
+					exit(-1);
+				}
 			}
+
+
 			
-			printf("%d: Richiesta elaborata!\n", getpid());
+			printf("  %d: Richiesta elaborata!\n", getpid());
 			
-			close(connsd);
 			exit(0);
 		}
 }
 
 void interrompi() {
 	printf("%d: Il server è stato terminato da console\n", getpid());
-	
 	exit(0);
 }
