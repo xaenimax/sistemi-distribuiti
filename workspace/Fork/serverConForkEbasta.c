@@ -25,9 +25,10 @@ void mainDelFiglioDiServizio();
 void acceptFiglioNormale();
 void acceptFiglioDiServizio();
 void interrompi();
+void inviaListaFile(int *);
 
 int pid, pidServizio, i;
-int listensd, connsd, listensdDiServizio, connsdDiServizio, connessioneNormale;
+int listensd, connsd, listensdDiServizio, connsdDiServizio, connessioneDiServizio;
 struct sockaddr_in servaddr, servaddrDiServizio;
 struct sockaddr_in ricevutoSuAddr;
 const char directoryDeiFile[] = "/home/alessandro/workspace/Fork/";
@@ -69,7 +70,6 @@ main() {
 		printf("%d: Il server è stato arrestato per qualche errore!\n", getpid());
 		exit(0);
 	}
-
 }
 
 void acceptFiglioNormale() {
@@ -104,10 +104,10 @@ void acceptFiglioDiServizio() {
 		printf(" %d: In attesa di una richiesta di servizio...\n", getpid());
 		
 		while(1) {
-			acceptSocket(&connessioneNormale, &listensdDiServizio);
+			acceptSocket(&connessioneDiServizio, &listensdDiServizio);
 			
 					//se è stata accettata una connessione normale...
-			if(connessioneNormale != 0) {
+			if(connessioneDiServizio != 0) {
 				printf(" %d: Creazione di un figlio di servizio in corso...\n", getpid());
 				
 				pid = fork();
@@ -118,7 +118,7 @@ void acceptFiglioDiServizio() {
 				
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
-				closeSocket(&connessioneNormale);
+				closeSocket(&connessioneDiServizio);
 			}
 		}
 	}
@@ -183,40 +183,20 @@ void mainDelFiglioDiServizio() {
 			int lunghezzaAddr = sizeof(ricevutoSuAddr);
 			
 			//se voglio sapere chi mi manda la richiesta..
-			getpeername(connessioneNormale, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
+			getpeername(connessioneDiServizio, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
 			
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 
-			while((n = recv(connessioneNormale, recvline, MAXLINE, 0)) > 0) {
+			while((n = recv(connessioneDiServizio, recvline, MAXLINE, 0)) > 0) {
 				printf("  %d: Ho ricevuto: %s.\n", getpid(), recvline, n);
 			
 				if(strcmp(recvline, "Lista File") == 0) {
-					int numeroDiFileTrovati = 0;
-					struct direct **fileTrovati;
-					
-					printf("  %d: Invio la lista file, come richiesto.\n", getpid());
-				
-// 					chdir(directoryDeiFile);
-					
-					numeroDiFileTrovati = scandir(directoryDeiFile, &fileTrovati, NULL, NULL);
-
-						/* If no files found, make a non-selectable menu item */
-					if 		(numeroDiFileTrovati <= 0) {
-						printf("  %d: Nessun file trovato!\n", getpid());
-					}
-					
-					printf("  %d: Numero di file trovati: %d\n", getpid(), numeroDiFileTrovati);
-					
-					for (i=1;i<numeroDiFileTrovati+1;++i)
-							printf("  %d: %s  \n", getpid(), fileTrovati[i-1]->d_name);
-					printf("\n");
-					
-					sendData(&connessioneNormale, &buff);
+					inviaListaFile(&connessioneDiServizio);
 				}
 				
 				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
 				else
-					closeSocket(&connessioneNormale);
+					closeSocket(&connessioneDiServizio);
 			}
 			
 			printf("  %d: Richiesta elaborata!\n", getpid());
@@ -228,4 +208,36 @@ void mainDelFiglioDiServizio() {
 void interrompi() {
 	printf("%d: Il server è stato terminato da console\n", getpid());
 	exit(0);
+}
+
+
+//Effettua la "dir" nella cartella del filesystem distribuito e la invia al client connesso al socket
+void inviaListaFile(int *socketConnesso) {
+	int numeroDiFileTrovati = 0;
+	struct direct **fileTrovati;
+	char stringaDiFileTrovati[MAXLINE];
+	char bufferDiInvio[MAXLINE];
+	
+	//svuoto il buffer di invio
+	bzero(bufferDiInvio, sizeof(bufferDiInvio));
+	
+	printf("  %d: Invio la lista file, come richiesto.\n", getpid());
+
+// 					chdir(directoryDeiFile);
+	
+	numeroDiFileTrovati = scandir(directoryDeiFile, &fileTrovati, NULL, alphasort);
+
+		/* If no files found, make a non-selectable menu item */
+	if 		(numeroDiFileTrovati <= 0) {
+		printf("  %d: Nessun file trovato!\n", getpid());
+	}
+	
+	printf("  %d: Numero di file trovati: %d\n", getpid(), numeroDiFileTrovati);
+	
+	for (i=1;i<numeroDiFileTrovati+1;++i) {
+			sprintf(stringaDiFileTrovati, "%s\r\n", fileTrovati[i-1]->d_name);
+			strcat(bufferDiInvio, stringaDiFileTrovati);
+	}
+	
+	sendData(socketConnesso, &bufferDiInvio);
 }
