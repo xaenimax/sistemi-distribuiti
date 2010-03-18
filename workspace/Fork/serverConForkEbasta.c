@@ -167,7 +167,7 @@ void mainDelFiglioDiServizio() {
 	
 		if(pid == 0) 
 		{
-			int n;
+			int dimesioneDatiRicevuti;
 			char buff[MAXLINE];
 			char recvline[MAXLINE];
 
@@ -187,16 +187,25 @@ void mainDelFiglioDiServizio() {
 			
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 
-			while((n = recv(connessioneDiServizio, recvline, MAXLINE, 0)) > 0) {
-				printf("  %d: Ho ricevuto: %s.\n", getpid(), recvline, n);
+// 			dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
+			dimesioneDatiRicevuti = recv(connessioneDiServizio, recvline, MAXLINE, 0);
+			
+			//finchè ho dati nella receive continuo a ricevere e a inviare dati con il socket
+			while(dimesioneDatiRicevuti > 0) {
+// 				printf("  %d: Ho ricevuto: %s.\n", getpid(), recvline);
 			
 				if(strcmp(recvline, "Lista File") == 0) {
 					inviaListaFile(&connessioneDiServizio);
+					bzero(&recvline, sizeof(recvline));					
+					dimesioneDatiRicevuti = recv(connessioneDiServizio, recvline, MAXLINE, 0);
+// 					dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
 				}
 				
 				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
-				else
+				else {
+					printf("  %d: Errore: Operazione non riconosciuta.\n", getpid());
 					closeSocket(&connessioneDiServizio);
+				}
 			}
 			
 			printf("  %d: Richiesta elaborata!\n", getpid());

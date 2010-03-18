@@ -41,34 +41,35 @@ main() {
 		
 		int lunghezzaAddr = sizeof(servaddr);
 			
-			//se voglio sapere chi mi manda la richiesta..
-		getsockname(socketCl, (struct sockaddr *) &servaddr, &lunghezzaAddr);
-		printf("%d: Il socket ha indirizzo: %s:%d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
+			//se voglio sapere a chi mando la richiesta..
+// 		getsockname(socketCl, (struct sockaddr *) &servaddr, &lunghezzaAddr);
+// 		printf("%d: Il socket ha indirizzo: %s:%d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
 		
-		strcpy(bufferDiInvio, "Lista File");
+ 		strcpy(bufferDiInvio, "Lista File");
+		for(i = 0; i < 3; i++) {
+			
+			printf("Invio la richiesta al server:\n");
+			
+			/* scrive sul socket di connessione il contenuto di buff */
+			if (send(socketCl, bufferDiInvio, strlen(bufferDiInvio), 0) < 0) {
+				printf("%d: ", getpid());
+				perror("errore in write del figlio\n"); 
+				exit(-1);
+			}
+		
+			printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 
-		printf("Invio i dati al server:\n");
-		
-		/* scrive sul socket di connessione il contenuto di buff */
-		if (send(socketCl, bufferDiInvio, strlen(bufferDiInvio), 0) < 0) {
-			printf("%d: ", getpid());
-			perror("errore in write del figlio\n"); 
-			exit(-1);
-		}
-	
- 		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
-
-		bzero(recvline, MAXLINE);		
-		
-		while((n = recv(socketCl, recvline, MAXLINE, 0)) > 0) {
-					
+			bzero(recvline, MAXLINE);		
+			
+			recv(socketCl, recvline, MAXLINE, 0);
+			
 			printf("Dati ricevuti: %s\n", recvline);
 			
 			if(n < 0)
-				perror("Errore nella read");
-
-			close(socketCl);
+				perror("Errore nella read");		
 		}
+		
+		close(socketCl);
 
 		//sleep(1);
 // 	}

@@ -56,6 +56,17 @@ void acceptSocket(int *socketDiConnessione, int *socketDiListen) {
 	}
 }
 
+int receiveData(int *socketConnesso, char *bufferDiRicezione, int dimensioneMassimaDelBuffer) {
+	int numeroDatiRicevuti;
+	if(numeroDatiRicevuti = recv(*socketConnesso, (char*)bufferDiRicezione, dimensioneMassimaDelBuffer, 0) < 0) {
+		printf("%d: ", getpid());
+		perror("errore in accept");
+		exit(-1);
+	}
+	
+	return numeroDatiRicevuti;
+}
+
 void sendData (int *socketConnesso, char *buff) {
 	
 	if (send(*socketConnesso, (char*)buff, strlen((char*)buff), 0) != strlen((char*)buff)) {
