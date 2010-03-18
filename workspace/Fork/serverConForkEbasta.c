@@ -187,8 +187,7 @@ void mainDelFiglioDiServizio() {
 			
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 
-// 			dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
-			dimesioneDatiRicevuti = recv(connessioneDiServizio, recvline, MAXLINE, 0);
+			dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
 			
 			//finchè ho dati nella receive continuo a ricevere e a inviare dati con il socket
 			while(dimesioneDatiRicevuti > 0) {
@@ -197,8 +196,7 @@ void mainDelFiglioDiServizio() {
 				if(strcmp(recvline, "Lista File") == 0) {
 					inviaListaFile(&connessioneDiServizio);
 					bzero(&recvline, sizeof(recvline));					
-					dimesioneDatiRicevuti = recv(connessioneDiServizio, recvline, MAXLINE, 0);
-// 					dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
+					dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
 				}
 				
 				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
