@@ -77,12 +77,23 @@ void sendData (int *socketConnesso, char *buff) {
 	}
 }
 
-
 //effettua la close sul socket
 void closeSocket(int *socketDaChiudere) {
 	if (close(*socketDaChiudere) == -1) {  /* chiude la connessione */
 		printf("%d: ", getpid());
 		perror("errore in close");
 		exit(-1);
+	}
+}
+
+void inserisciTesto(char *bufferDoveInserireIlTesto) {
+	fflush(stdout);
+	if ( fgets(bufferDoveInserireIlTesto, sizeof(*bufferDoveInserireIlTesto), stdin) != NULL ) {
+		
+			char *newline = strchr(bufferDoveInserireIlTesto, '\n'); /* search for newline character */
+			
+			if ( newline != NULL ) {
+				*newline = '\0'; /* overwrite trailing newline */
+				}
 	}
 }

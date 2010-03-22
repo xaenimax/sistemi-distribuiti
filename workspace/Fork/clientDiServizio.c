@@ -14,11 +14,10 @@
 
 main() {
 
-	int socketCl, n, i;
+	int socketCl, numeroDatiRicevuti, i;
 	char recvline[MAXLINE], bufferDiInvio[MAXLINE];
 	const char IP_ADDRESS[] = "127.0.0.1";	
 	struct sockaddr_in servaddr;
-		
 	
 // 	for( ; ; ){
 // 		if((socketCl = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -45,32 +44,48 @@ main() {
 // 		getsockname(socketCl, (struct sockaddr *) &servaddr, &lunghezzaAddr);
 // 		printf("%d: Il socket ha indirizzo: %s:%d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
 		
- 		strcpy(bufferDiInvio, "Lista File");
-		for(i = 0; i < 3; i++) {
+// 		strcpy(bufferDiInvio, "Lista File");
+		
+		//finchè il socket rimane aperto...
+		while(1) {
 			
-			printf("Invio la richiesta al server:\n");
+			printf("Operazione da eseguire: \n");
+// 			bzero(bufferDiInvio, sizeof(bufferDiInvio));
+			//%[^\n] vuol dire che accetto tutto in ingresso escluso \n. Mi serve per includere anche gli spazi che digita l'utente
+
+// 			scanf("%s%*[^\n]", bufferDiInvio);
+				fflush(stdout);
+			if ( fgets(bufferDiInvio, sizeof(bufferDiInvio), stdin) != NULL ) {
+				
+					char *newline = strchr(bufferDiInvio, '\n'); /* search for newline character */
+					
+					if ( newline != NULL ) {
+						*newline = '\0'; /* overwrite trailing newline */
+						}
+			}
+			
+// 			printf("Invio \'%s\' al server:\n", bufferDiInvio);
 			
 			/* scrive sul socket di connessione il contenuto di buff */
-			if (send(socketCl, bufferDiInvio, strlen(bufferDiInvio), 0) < 0) {
-				printf("%d: ", getpid());
-				perror("errore in write del figlio\n"); 
-				exit(-1);
-			}
+			sendData(&socketCl, &bufferDiInvio);
 		
 			printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 
-			bzero(recvline, MAXLINE);		
+			bzero(recvline, sizeof(recvline));		
 			
-			recv(socketCl, recvline, MAXLINE, 0);
+			numeroDatiRicevuti = receiveData(&socketCl, &recvline, MAXLINE);
 			
-			printf("Dati ricevuti: %s\n", recvline);
+			printf("Dati ricevuti: \n%s\n", recvline);
 			
-			if(n < 0)
-				perror("Errore nella read");		
+			if(strcmp(recvline, "Arrivederci") == 0) {
+				closeSocket(&socketCl);
+				break;
+			}
+			
 		}
 		
-		close(socketCl);
-
+// 		close(socketCl);
+		
 		//sleep(1);
 // 	}
 	exit(0);

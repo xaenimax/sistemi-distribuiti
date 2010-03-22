@@ -167,7 +167,7 @@ void mainDelFiglioDiServizio() {
 	
 		if(pid == 0) 
 		{
-			int dimesioneDatiRicevuti;
+			int dimensioneDatiRicevuti;
 			char buff[MAXLINE];
 			char recvline[MAXLINE];
 
@@ -187,22 +187,33 @@ void mainDelFiglioDiServizio() {
 			
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 
-			dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
+			dimensioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
 			
 			//finchè ho dati nella receive continuo a ricevere e a inviare dati con il socket
-			while(dimesioneDatiRicevuti > 0) {
+			while(dimensioneDatiRicevuti > 0) {
 // 				printf("  %d: Ho ricevuto: %s.\n", getpid(), recvline);
 			
 				if(strcmp(recvline, "Lista File") == 0) {
 					inviaListaFile(&connessioneDiServizio);
 					bzero(&recvline, sizeof(recvline));					
-					dimesioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
+					dimensioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);
+				}
+				
+				else if (strcmp(recvline, "Uscita") == 0) {
+					bzero(buff, sizeof(buff));
+					printf("  %d: Il client chiude la connessione\n", getpid());
+					strcpy(buff, "Arrivederci");
+					sendData(&connessioneDiServizio, &buff);
+					dimensioneDatiRicevuti = 0;
 				}
 				
 				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
 				else {
-					printf("  %d: Errore: Operazione non riconosciuta.\n", getpid());
-					closeSocket(&connessioneDiServizio);
+					bzero(buff, sizeof(buff));
+					strcpy(buff, "Operazione non riconosciuta.\r\n Operazioni permesse: Lista File, Uscita");
+					sendData(&connessioneDiServizio, &buff);
+					printf("  %d: Operazione \'%s\' non riconosciuta.\n", getpid(), recvline);
+					dimensioneDatiRicevuti = receiveData(&connessioneDiServizio, &recvline, MAXLINE);					
 				}
 			}
 			
@@ -235,11 +246,11 @@ void inviaListaFile(int *socketConnesso) {
 	numeroDiFileTrovati = scandir(directoryDeiFile, &fileTrovati, NULL, alphasort);
 
 		/* If no files found, make a non-selectable menu item */
-	if 		(numeroDiFileTrovati <= 0) {
-		printf("  %d: Nessun file trovato!\n", getpid());
-	}
+// 	if 		(numeroDiFileTrovati <= 0) {
+// 		printf("  %d: Nessun file trovato!\n", getpid());
+// 	}
 	
-	printf("  %d: Numero di file trovati: %d\n", getpid(), numeroDiFileTrovati);
+// 	printf("  %d: Numero di file trovati: %d\n", getpid(), numeroDiFileTrovati);
 	
 	for (i=1;i<numeroDiFileTrovati+1;++i) {
 			sprintf(stringaDiFileTrovati, "%s\r\n", fileTrovati[i-1]->d_name);
