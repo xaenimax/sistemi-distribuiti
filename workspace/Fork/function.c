@@ -78,6 +78,29 @@ int sendData (int *socketConnesso, char *buff) {
 	return 1;
 }
 
+int sendPacchetto(int *socketConnesso, struct pacchetto *pacchettoDaInviare) {
+	
+	if (send(*socketConnesso, (void*)pacchettoDaInviare, sizeof(struct pacchetto), 0) != sizeof(struct pacchetto)) {
+		printf("  %d: ", getpid());
+		perror("errore in write del figlio\n"); 
+		exit(-1);
+	}
+	
+	return 1;
+}
+
+int receivePacchetto(int *socketConnesso, struct pacchetto *pacchettoDaInviare, int dimensioneMassimaDelBuffer) {
+	int numeroDatiRicevuti = 0;
+	numeroDatiRicevuti = recv(*socketConnesso, (void*)pacchettoDaInviare, dimensioneMassimaDelBuffer, 0);
+	if(numeroDatiRicevuti < 0) {
+		printf("%d: ", getpid());
+		perror("errore in accept");
+		exit(-1);
+	}
+	
+	return numeroDatiRicevuti;
+}
+
 //effettua la close sul socket
 void closeSocket(int *socketDaChiudere) {
 	if (close(*socketDaChiudere) == -1) {  /* chiude la connessione */

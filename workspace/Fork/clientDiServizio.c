@@ -6,11 +6,10 @@
 main() {
 
 	int socketCl, numeroDatiRicevuti, i, numeroMessaggioInviato;
-	char recvline[MAXLINE], stringaInseritaDallutente[MAXLINE];
+	char stringaInseritaDallutente[MAXLINE];
 	const char IP_ADDRESS[] = "127.0.0.1";	
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
-	char structInByte[sizeof(pacchettoApplicativo)];
 	
 	createSocketStream(&socketCl);
 	
@@ -39,7 +38,6 @@ main() {
 	while(1) {
 		
 		//prima di fare qualsiasi cosa svuoto le strutture dati di invio per evitare che siano "sporche" e contengano dati di precedenti invii
-		bzero(&structInByte, sizeof(structInByte));
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
 		printf("Operazione da eseguire: \n");
@@ -56,25 +54,18 @@ main() {
 
 		pacchettoApplicativo.numeroMessaggio = numeroMessaggioInviato;
 		strcpy(pacchettoApplicativo.tipoOperazione, stringaInseritaDallutente);
-
-		memcpy(&structInByte, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
 		/* se l'invio del messaggio va a buon fine incremento di uno il numero di messaggio in modo tale che il prossimo messaggio abbia un numero progressivo già incrementato di uno */
-		if(sendData(&socketCl, &structInByte) > 0)
+		if(sendPacchetto(&socketCl, &pacchettoApplicativo) > 0)
 			numeroMessaggioInviato++;
 	
 		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 
-		bzero(recvline, sizeof(recvline));
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
-		numeroDatiRicevuti = receiveData(&socketCl, &recvline, MAXLINE);
+		numeroDatiRicevuti = receivePacchetto(&socketCl, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
 		
-		printf("Riceve Fatta\n");
-		
-		memcpy(&pacchettoApplicativo, &recvline, sizeof(pacchettoApplicativo));
-		
-		printf("Dati ricevuti: \n%s\n", pacchettoApplicativo.messaggio);
+		printf("Dati ricevuti: [%s] \n%s\n", pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 		
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "Arrivederci") == 0) {
 			closeSocket(&socketCl);

@@ -154,8 +154,6 @@ void mainDelFiglioDiServizio() {
 		{
 			int dimensioneDatiRicevuti;
 			struct pacchetto pacchettoRicevuto, pacchettoDaInviare;
-			char byteDaInviare[sizeof(pacchettoDaInviare)];
-			char byteRicevuti[MAXLINE];
 
 			closeSocket(&listensdDiServizio);
 			
@@ -168,9 +166,8 @@ void mainDelFiglioDiServizio() {
 			getpeername(connessioneDiServizio, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 
-			dimensioneDatiRicevuti = receiveData(&connessioneDiServizio, &byteRicevuti, MAXLINE);
-			memcpy(&pacchettoRicevuto, &byteRicevuti, sizeof(pacchettoRicevuto));
-			
+			dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
+		
 			//finchè ho dati nella receive continuo a ricevere e a inviare dati con il socket
 			while(dimensioneDatiRicevuti > 0) {
 // 				printf("  %d: Ho ricevuto: %s.\n", getpid(), pacchettoRicevuto.tipoOperazione);
@@ -179,41 +176,35 @@ void mainDelFiglioDiServizio() {
 				if(strcmp(pacchettoRicevuto.tipoOperazione, "Lista File") == 0) {
 					inviaListaFile(&connessioneDiServizio);
 					
-					bzero(&byteRicevuti, sizeof(byteRicevuti));
 					bzero(&pacchettoRicevuto, sizeof(pacchettoRicevuto));
-					dimensioneDatiRicevuti = receiveData(&connessioneDiServizio, &byteRicevuti, MAXLINE);
-					memcpy(&pacchettoRicevuto, &byteRicevuti, sizeof(pacchettoRicevuto));
+					dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
 				}
 				
 				//richiesta di uscita
 				else if (strcmp(pacchettoRicevuto.tipoOperazione, "Uscita") == 0) {
-					bzero(byteDaInviare, sizeof(byteDaInviare));
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
 					
 					printf("  %d: Il client chiude la connessione\n", getpid());
 					
 					strcpy(pacchettoDaInviare.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoDaInviare.messaggio, "Arrivederci");
-					memcpy(&byteDaInviare, &pacchettoDaInviare, sizeof(pacchettoDaInviare));
+
+ 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					
-					sendData(&connessioneDiServizio, &byteDaInviare);
 					dimensioneDatiRicevuti = 0; //faccio in modo di uscire dal ciclo di attesa di dati da ricevere
 				}
 				
 				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
 				else {
-					bzero(byteDaInviare, sizeof(byteDaInviare));
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
 					strcpy(pacchettoDaInviare.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: Lista File, Uscita");
-					memcpy(&byteDaInviare, &pacchettoDaInviare, sizeof(pacchettoDaInviare));
 					
-					sendData(&connessioneDiServizio, &byteDaInviare);
+// 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
+					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					printf("  %d: Operazione \'%s\' non riconosciuta.\n", getpid(), pacchettoRicevuto.messaggio);
 					
-					bzero(&byteRicevuti, sizeof(byteRicevuti));
 					bzero(&pacchettoRicevuto, sizeof(pacchettoRicevuto));
-					dimensioneDatiRicevuti = receiveData(&connessioneDiServizio, &byteRicevuti, MAXLINE);	
-					memcpy(&pacchettoRicevuto, &byteRicevuti, sizeof(pacchettoRicevuto));
+					dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
 				}
 			}
 			
@@ -233,18 +224,14 @@ void interrompi() {
 void inviaListaFile(int *socketConnesso) {
 	int numeroDiFileTrovati = 0;
 	struct direct **fileTrovati;
-	char stringaDiFileTrovati[MAXLINE];
-	char bufferDiInvio[MAXLINE];
 	struct pacchetto pacchettoDaInviare;
+	char stringaDiFileTrovati[MAXLINE];
 	
 	//svuoto il buffer di invio
-	bzero(bufferDiInvio, sizeof(bufferDiInvio));
 	bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
 	
 	printf("  %d: Invio la lista file, come richiesto.\n", getpid());
 
-// 					chdir(directoryDeiFile);
-	
 	numeroDiFileTrovati = scandir(directoryDeiFile, &fileTrovati, NULL, alphasort);
 
 		/* If no files found, make a non-selectable menu item */
@@ -259,9 +246,5 @@ void inviaListaFile(int *socketConnesso) {
 			strcat(pacchettoDaInviare.messaggio, stringaDiFileTrovati);
 	}
 	
-	memcpy(&bufferDiInvio, &pacchettoDaInviare, sizeof(pacchettoDaInviare));
-	
-	printf("L: %s\n", bufferDiInvio);
-	
-	sendData(socketConnesso, &bufferDiInvio);
+	sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
