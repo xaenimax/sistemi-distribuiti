@@ -8,7 +8,6 @@ void inizializza_memset(struct sockaddr_in* servaddr, int porta) {
 	servaddr->sin_addr.s_addr = htonl(INADDR_ANY); /* il server accetta 
 				connessioni su una qualunque delle sue intefacce di rete */
 	servaddr->sin_port = htons(porta); /* numero di porta del server */
-	
 }
 
 //crea un socket orientato allo stream
@@ -68,13 +67,15 @@ int receiveData(int *socketConnesso, char *bufferDiRicezione, int dimensioneMass
 	return numeroDatiRicevuti;
 }
 
-void sendData (int *socketConnesso, char *buff) {
+int sendData (int *socketConnesso, char *buff) {
 	
 	if (send(*socketConnesso, (char*)buff, strlen((char*)buff), 0) != strlen((char*)buff)) {
 		printf("  %d: ", getpid());
 		perror("errore in write del figlio\n"); 
 		exit(-1);
 	}
+	
+	return 1;
 }
 
 //effettua la close sul socket
