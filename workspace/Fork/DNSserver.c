@@ -156,7 +156,9 @@ void fornisciDNS() {
 					printf("\n"); */
 
 
-					snprintf(buff, sizeof(buff), lista_server[server_scelto]);
+					//snprintf(buff, sizeof(buff), lista_server[server_scelto]);
+
+					strcpy(buff, lista_server[server_scelto]);
 
 					sendData(&connessioneNormale, &buff);
 				}
