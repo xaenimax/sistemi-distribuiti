@@ -47,7 +47,7 @@ main() {
 		pid = fork();
 		acceptFiglioDiServizio();
 			
-		printf("%d: Server avviato\n", getpid());
+		printf("%d: Server avviato:\n", getpid());
 		
 		// -1 sta per aspetto qualasiasi figlio che termina, 0 sta per nessuna opzione, rimango bloccato fino a che non muore qualche figlio.
 		waitpid(-1, &pid, 0);
@@ -153,12 +153,13 @@ void mainDelFiglioDiServizio() {
 		if(pid == 0) 
 		{
 			int dimensioneDatiRicevuti;
+			char pippo[10];
 			struct pacchetto pacchettoRicevuto, pacchettoDaInviare;
 
 			closeSocket(&listensdDiServizio);
 			
 			printf("  %d: Presa in consegna richiesta di servizio.\n", getpid());
-			
+					
 			memset((void *)&ricevutoSuAddr, 0, sizeof(ricevutoSuAddr));
 			
 			//se voglio sapere chi mi manda la richiesta..
