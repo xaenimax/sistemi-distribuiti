@@ -111,3 +111,10 @@ void closeSocket(int *socketDaChiudere) {
 		exit(-1);
 	}
 }
+
+void inetPton(struct sockaddr_in *indirizzo, char *indirizzoInStringa) {
+	if(inet_pton(AF_INET, indirizzoInStringa, &indirizzo->sin_addr) <= 0) {
+		perror("Errore nella conversione dell'indirizzo");
+		exit(-1);
+	}
+}
