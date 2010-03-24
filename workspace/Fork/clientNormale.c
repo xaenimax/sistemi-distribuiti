@@ -5,10 +5,11 @@
 
 main() {
 
-	int sockfd, n, i;
-	char recvline[MAXLINE+1];
+	int socketCL, numeroDatiRicevuti, i;
 	const char IP_ADDRESS[] = "127.0.0.1";	
 	struct sockaddr_in servaddr;
+	struct pacchetto pacchettoApplicativo;
+	char stringaInseritaDallutente[MAXLINE];
 		
 	
 	for( ; ; ){
