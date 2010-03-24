@@ -2,6 +2,7 @@
 
 #define SERV_PORT		6000
 #define MAXLINE		1024
+/* Questo Client è usato per provare le funzioni di servizio del server */
 
 main() {
 
