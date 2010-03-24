@@ -1,3 +1,4 @@
+#include "general.h"
 
 //Serve ad inserire del testo da stdin. Salva il testo in buffer
 void inserisciTesto(char *bufferDoveInserireIlTesto) {

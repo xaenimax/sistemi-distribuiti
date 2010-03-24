@@ -1,27 +1,27 @@
-all : serverReplica.c function.c funzioni_dns.c clientNormale.c clientDiServizio.c DNSserver.c clientDNS.c
+all : serverReplica.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c clientNormale.c clientDiServizio.c DNSserver.c clientDNS.c
 #	gcc -o serverConFork serverConForkEselect.c function.c
 # Attenzione, non compilo il file che contiene il server con Fork e select!
-	gcc -o serverReplica serverReplica.c function.c
-	gcc -o clientNormale clientNormale.c function.c
-	gcc -o clientDiServizio clientDiServizio.c function.c
-	gcc -o DNSserver DNSserver.c function.c funzioni_dns.c
-	gcc -o clientDNS clientDNS.c function.c
+	gcc -o serverReplica serverReplica.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o clientNormale clientNormale.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o clientDiServizio clientDiServizio.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o DNSserver DNSserver.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o clientDNS clientDNS.c funzioniGeneriche.c funzioniSocket.c 
 	
-DNSserver : DNSserver.c function.c funzioni_dns.c
-	gcc -o DNSserver DNSserver.c function.c funzioni_dns.c
+DNSserver : DNSserver.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c
+	gcc -o DNSserver DNSserver.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c
 	
-clientDNS : clientDNS.c function.c
-	gcc -o clientDNS clientDNS.c function.c
+clientDNS : clientDNS.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o clientDNS clientDNS.c funzioniGeneriche.c funzioniSocket.c 
 	
-serverReplica : serverReplica.c function.c
-	gcc -o serverConForkEbasta serverConForkEbasta.c function.c
+serverReplica : serverReplica.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o serverConForkEbasta serverConForkEbasta.c funzioniGeneriche.c funzioniSocket.c 
 	
-serverConFork : serverConForkEselect.c function.c
-	gcc -o serverConFork serverConForkEselect.c function.c
+serverConFork : serverConForkEselect.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o serverConFork serverConForkEselect.c funzioniGeneriche.c funzioniSocket.c 
 
-clientNormale : clientNormale.c
-	gcc -o clientNormale clientNormale.c function.c
+clientNormale : clientNormale.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o clientNormale clientNormale.c funzioniGeneriche.c funzioniSocket.c 
 	
-clientDiServizio : clientDiServizio.c
-	gcc -o clientDiServizio clientDiServizio.c function.c
+clientDiServizio : clientDiServizio.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o clientDiServizio clientDiServizio.c funzioniGeneriche.c funzioniSocket.c 
 
