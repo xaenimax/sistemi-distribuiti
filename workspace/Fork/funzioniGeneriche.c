@@ -1,9 +1,11 @@
 #include "general.h"
 
 //Serve ad inserire del testo da stdin. Salva il testo in buffer
-void inserisciTesto(char *bufferDoveInserireIlTesto) {
+void inserisciTesto(char *bufferDoveInserireIlTesto, int dimensioneDelBufferDiTesto) {
+	
 	fflush(stdout);
-	if ( fgets(bufferDoveInserireIlTesto, sizeof(*bufferDoveInserireIlTesto), stdin) != NULL ) {
+	
+	if ( fgets(bufferDoveInserireIlTesto, dimensioneDelBufferDiTesto, stdin) != NULL ) {
 		
 			char *newline = strchr(bufferDoveInserireIlTesto, '\n'); /* search for newline character */
 			

@@ -5,38 +5,56 @@
 
 main() {
 
-	int socketCL, numeroDatiRicevuti, i;
+	int socketCL, numeroDatiRicevuti, i, numeroMessaggioInviato;
 	const char IP_ADDRESS[] = "127.0.0.1";	
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
 	char stringaInseritaDallutente[MAXLINE];
 		
-	while(1) {
-
-		createSocketStream(&socketCL);
-		
-		memset((void*)&servaddr, 0, sizeof(servaddr)); //azzera il contenuto di servaddr
-		
-		servaddr.sin_family = AF_INET;
-		servaddr.sin_port = htons(SERV_PORT);
-		
-		inetPton(&servaddr, IP_ADDRESS);
+	numeroMessaggioInviato = 1;
 	
-		connectSocket(&socketCL, &servaddr);
+	createSocketStream(&socketCL);
+	
+	memset((void*)&servaddr, 0, sizeof(servaddr)); //azzera il contenuto di servaddr
+	
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_port = htons(SERV_PORT);
+	
+	inetPton(&servaddr, IP_ADDRESS);
 
-		while((n = read(socketCL, recvline, MAXLINE)) > 0) {
-			recvline[n] = 0;
-			if(fputs(recvline, stdout) == EOF) {
-				fprintf(stderr, "Errore in fputs");
-				exit (-1);
-			}
+	connectSocket(&socketCL, &servaddr);
+
+	while(1) {
+		
+		bzero(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		
+		printf("Operazione da eseguire:\n");
+		inserisciTesto(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+		printf("%s\n", stringaInseritaDallutente);
+		
+		strcpy(pacchettoApplicativo.tipoOperazione, stringaInseritaDallutente);
+		pacchettoApplicativo.numeroMessaggio = numeroMessaggioInviato;
+		
+		printf("Invio i dati...\n");
+		
+		if(sendPacchetto(&socketCL, &pacchettoApplicativo) > 0)
+			numeroMessaggioInviato++;
+		
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		
+		printf("Operazione ricevuta: %s\n", pacchettoApplicativo.tipoOperazione);
+		
+		if(strcmp(pacchettoApplicativo.tipoOperazione, "Arrivederci") == 0) {
+			printf("Chiudo la connessione\n");
+			closeSocket(&socketCL);
+			break;
 		}
 		
-		if(n < 0)
-			perror("Errore nella read");
-
-		close(socketCL);
-		sleep(1);
+		else if(strcmp(pacchettoApplicativo.tipoOperazione, "Sconosciuta") == 0) {
+			printf("%s\n", pacchettoApplicativo.messaggio);
+		}
 	}
 	exit(0);
 }

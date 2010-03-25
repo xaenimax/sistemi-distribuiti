@@ -13,26 +13,25 @@ void interrompi();
 void inviaListaFile(int *);
 
 int pid, pidServizio, i;
-int listensd, connsd, listensdDiServizio, connsdDiServizio, connessioneDiServizio;
-struct sockaddr_in servaddr, servaddrDiServizio;
-struct sockaddr_in ricevutoSuAddr;
+int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
+struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
 const char directoryDeiFile[] = "/home/alessandro/workspace/Fork/";
 	
 main() {
 
 	printf("%d: Avvio del server...\n", getpid());
 	
-	createSocketStream(&listensd);
-	createSocketStream(&listensdDiServizio);
+	createSocketStream(&listenNormale);
+	createSocketStream(&listenDiServizio);
 
-	inizializza_memset(&servaddr, SERV_PORT);
-	inizializza_memset(&servaddrDiServizio, SERVICE_PORT);
+	inizializza_memset(&indirizzoNormale, SERV_PORT);
+	inizializza_memset(&indirizzoDiServizio, SERVICE_PORT);
 	
-	bindSocket(&listensd, &servaddr);
-	bindSocket(&listensdDiServizio, &servaddrDiServizio);
+	bindSocket(&listenNormale, &indirizzoNormale);
+	bindSocket(&listenDiServizio, &indirizzoDiServizio);
 	
-	listenSocket(&listensd, BACKLOG);
-	listenSocket(&listensdDiServizio, BACKLOG);
+	listenSocket(&listenNormale, BACKLOG);
+	listenSocket(&listenDiServizio, BACKLOG);
 	
 	pid = fork();
 	
@@ -63,9 +62,9 @@ void acceptFiglioNormale() {
 		printf(" %d: In attesa di una richiesta normale...\n", getpid());
 	
 		while(1) {
-			acceptSocket(&connsd, &listensd);
+			acceptSocket(&connessioneNormale, &listenNormale);
 					//se è stata accettata una connessione normale...
-			if(connsd != 0) {
+			if(connessioneNormale != 0) {
 				printf(" %d: Creazione di un figlio in corso...\n", getpid());
 				
 				pid = fork();
@@ -76,7 +75,7 @@ void acceptFiglioNormale() {
 				
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
-				closeSocket(&connsd);
+				closeSocket(&connessioneNormale);
 			}
 		}
 	}
@@ -89,7 +88,7 @@ void acceptFiglioDiServizio() {
 		printf(" %d: In attesa di una richiesta di servizio...\n", getpid());
 		
 		while(1) {
-			acceptSocket(&connessioneDiServizio, &listensdDiServizio);
+			acceptSocket(&connessioneDiServizio, &listenDiServizio);
 			
 					//se è stata accettata una connessione normale...
 			if(connessioneDiServizio != 0) {
@@ -114,31 +113,50 @@ void mainDelFiglio() {
 	
 		if(pid == 0) 
 		{
-			time_t        ticks;
-			char          buff[MAXLINE];
-			
+			struct pacchetto pacchettoApplicativo;
+			int numeroDatiRicevuti;
 			printf("  %d: Presa in consegna richiesta normale.\n", getpid());
 			
+			closeSocket(&listenNormale);
+			
 			memset((void *)&ricevutoSuAddr, 0, sizeof(ricevutoSuAddr));
-			
 			int lunghezzaAddr = sizeof(ricevutoSuAddr);
-			
-			getpeername(connsd, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
-			
+			getpeername(connessioneNormale, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
 				
-			/* accetta una connessione con un client */
-			ticks = time(NULL); /* legge l'orario usando la chiamata di sistema time */
-			/* scrive in buff l'orario nel formato ottenuto da ctime; 
-				snprintf impedisce l'overflow del buffer. */
-			snprintf(buff, sizeof(buff), "%.24s\r\n", ctime(&ticks)); /* ctime trasforma la data 
-					e lora da binario in ASCII. \r\n per carriage return e line feed*/
+			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+			
+			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+			
+			while(numeroDatiRicevuti > 0) {
+			
+				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
+				
+				if(strcmp(pacchettoApplicativo.tipoOperazione, "Uscita") == 0) {
+					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					
+					printf("  %d: Il client chiude la connessione\n", getpid());
+					
+					strcpy(pacchettoApplicativo.tipoOperazione, "Arrivederci");
+					strcpy(pacchettoApplicativo.messaggio, "Arrivederci");
 
-			/* scrive sul socket di connessione il contenuto di buff */
-			if (write(connsd, buff, strlen(buff)) != strlen(buff)) {
-				printf("  %d: ", getpid());
-				perror("errore in write del figlio\n"); 
-				exit(-1);
+ 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+					
+					numeroDatiRicevuti = 0; //faccio in modo di uscire dal ciclo di attesa di dati da ricevere
+				}
+				
+				else {
+					printf("  %d: Operazione non riconosciuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
+					
+					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");
+					strcpy(pacchettoApplicativo.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: Lista File, Uscita");
+					
+					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+					
+					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+				}
 			}
 			
 			printf("  %d: Richiesta elaborata!\n", getpid());
@@ -156,7 +174,7 @@ void mainDelFiglioDiServizio() {
 			char pippo[10];
 			struct pacchetto pacchettoRicevuto, pacchettoDaInviare;
 
-			closeSocket(&listensdDiServizio);
+			closeSocket(&listenDiServizio);
 			
 			printf("  %d: Presa in consegna richiesta di servizio.\n", getpid());
 					

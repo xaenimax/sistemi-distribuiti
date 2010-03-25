@@ -4,7 +4,7 @@ all : serverReplica.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c client
 	gcc -o serverReplica serverReplica.c funzioniGeneriche.c funzioniSocket.c 
 	gcc -o clientNormale clientNormale.c funzioniGeneriche.c funzioniSocket.c 
 	gcc -o clientDiServizio clientDiServizio.c funzioniGeneriche.c funzioniSocket.c 
-	gcc -o DNSserver DNSserver.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o DNSserver DNSserver.c funzioni_dns.c funzioniGeneriche.c funzioniSocket.c 
 	gcc -o clientDNS clientDNS.c funzioniGeneriche.c funzioniSocket.c 
 	
 DNSserver : DNSserver.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c
