@@ -127,12 +127,12 @@ void mainDelFiglio() {
 			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 			
 			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
-			
+
 			while(numeroDatiRicevuti > 0) {
-			
 				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
 				
-				if(strcmp(pacchettoApplicativo.tipoOperazione, "Uscita") == 0) {
+				//se il client chiede il logout chiudo la connessione
+				if(strcmp(pacchettoApplicativo.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					
 					printf("  %d: Il client chiude la connessione\n", getpid());
@@ -143,6 +143,81 @@ void mainDelFiglio() {
  					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					numeroDatiRicevuti = 0; //faccio in modo di uscire dal ciclo di attesa di dati da ricevere
+				}
+				
+								//richiesta lista file
+				else if(strcmp(pacchettoApplicativo.tipoOperazione, "lista file") == 0) {
+					inviaListaFile(&connessioneNormale);
+					
+					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+				}
+				
+				else if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file") == 0) {
+					
+					FILE *fileDaLeggere = fopen(pacchettoApplicativo.nomeFile, "rb");
+					char nomeFileDaLeggere[500];
+					
+					strcpy(nomeFileDaLeggere, pacchettoApplicativo.nomeFile);
+					
+					//se non trovo il file spedisco un messaggio e avverto il client
+					if(fileDaLeggere == NULL) {
+						printf("  %d: File \'%s\'non trovato\n", getpid(), pacchettoApplicativo.nomeFile);
+						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+						
+						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
+						strcpy(pacchettoApplicativo.messaggio, "File non trovato\n");
+						
+						sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+						
+						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					}
+					
+					else {
+						printf("  %d: File trovato!\n", getpid());
+						int dimensioneDelFile, numeroDiByteLetti;
+						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
+						
+						fseek(fileDaLeggere, 0L, SEEK_END);
+						dimensioneDelFile = ftell(fileDaLeggere);
+						fseek(fileDaLeggere, 0L, SEEK_SET);
+
+						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+						
+						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
+						strcpy(pacchettoApplicativo.messaggio, "File trovato");
+						strcpy(pacchettoApplicativo.nomeFile, nomeFileDaLeggere);
+						
+						sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+						
+						while(dimensioneDelFile != numeroDiByteLetti) {
+							
+							bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+							bzero(bufferFileLetto, sizeof(bufferFileLetto));
+							
+							numeroDiByteLetti = numeroDiByteLetti + fread(bufferFileLetto, sizeof(char), sizeof(pacchettoApplicativo.messaggio), fileDaLeggere);
+						
+							memcpy(pacchettoApplicativo.messaggio, bufferFileLetto, sizeof(pacchettoApplicativo.messaggio));
+							
+							strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
+							sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+							printf("i: %s\n", pacchettoApplicativo.messaggio);
+							printf("  %d: Inviati: %d / %d byte\n", getpid(), numeroDiByteLetti, dimensioneDelFile);
+						}
+						
+						printf("  %d: Terminata lettura del file, letti %d / %d byte\n", getpid(), numeroDiByteLetti, dimensioneDelFile);
+						
+						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+						
+						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
+						strcpy(pacchettoApplicativo.messaggio, "esci");
+						
+						sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+						
+						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					}
 				}
 				
 				else {
@@ -192,7 +267,7 @@ void mainDelFiglioDiServizio() {
 // 				printf("  %d: Ho ricevuto: %s.\n", getpid(), pacchettoRicevuto.tipoOperazione);
 			
 				//richiesta lista file
-				if(strcmp(pacchettoRicevuto.tipoOperazione, "Lista File") == 0) {
+				if(strcmp(pacchettoRicevuto.tipoOperazione, "lista file") == 0) {
 					inviaListaFile(&connessioneDiServizio);
 					
 					bzero(&pacchettoRicevuto, sizeof(pacchettoRicevuto));
@@ -200,7 +275,7 @@ void mainDelFiglioDiServizio() {
 				}
 				
 				//richiesta di uscita
-				else if (strcmp(pacchettoRicevuto.tipoOperazione, "Uscita") == 0) {
+				else if (strcmp(pacchettoRicevuto.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
 					
 					printf("  %d: Il client chiude la connessione\n", getpid());
@@ -216,7 +291,7 @@ void mainDelFiglioDiServizio() {
 				//se non riconosco nessuna delle richieste che mi è giunta chiudo la connessione con il client
 				else {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
-					strcpy(pacchettoDaInviare.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: Lista File, Uscita");
+					strcpy(pacchettoDaInviare.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: lista file, Uscita");
 					
 // 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
@@ -265,5 +340,5 @@ void inviaListaFile(int *socketConnesso) {
 			strcat(pacchettoDaInviare.messaggio, stringaDiFileTrovati);
 	}
 	
-	sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
+	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }

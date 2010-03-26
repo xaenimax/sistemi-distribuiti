@@ -1,6 +1,6 @@
 #include "general.h"
 
-#define SERV_PORT		6000
+#define SERV_PORT		5193
 #define MAXLINE		1024
 /* Questo Client è usato per provare le funzioni di servizio del server */
 
@@ -43,19 +43,21 @@ main() {
 		
 		printf("Operazione da eseguire: \n");
 
-		fflush(stdout);
-		if ( fgets(stringaInseritaDallutente, sizeof(stringaInseritaDallutente), stdin) != NULL ) {
-			
-			char *newline = strchr(stringaInseritaDallutente, '\n'); /* search for newline character */
-			
-			if ( newline != NULL ) {
-				*newline = '\0'; /* overwrite trailing newline */
-			}
-		}
+		inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 
 		pacchettoApplicativo.numeroMessaggio = numeroMessaggioInviato;
 		strcpy(pacchettoApplicativo.tipoOperazione, stringaInseritaDallutente);
 		
+		//se l'utente vuole leggere un file, chiedo il nome del file che vuole leggere
+		//ATTENZIONE! Siccome Vienna sta lavorando sul client normale, scrivo questa funzione qua
+		//che andrà spostata dentro il client normale
+		if(strncmp("leggi file", stringaInseritaDallutente, 10) == 0) {
+			printf("Inserire il nome del file che si intende leggere:\n");
+			bzero(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+			inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+			strcpy(pacchettoApplicativo.nomeFile, stringaInseritaDallutente);
+		}
+		 
 		/* se l'invio del messaggio va a buon fine incremento di uno il numero di messaggio in modo tale che il prossimo messaggio abbia un numero progressivo già incrementato di uno */
 		if(sendPacchetto(&socketCl, &pacchettoApplicativo) > 0)
 			numeroMessaggioInviato++;
@@ -65,6 +67,20 @@ main() {
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
 		numeroDatiRicevuti = receivePacchetto(&socketCl, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
+		
+		if(strcmp(pacchettoApplicativo.messaggio, "File trovato") == 0) {
+			strcat(pacchettoApplicativo.nomeFile, "_prova");
+			FILE *fileDaScrivere = fopen(pacchettoApplicativo.nomeFile, "wb");
+			
+			while(strcmp(pacchettoApplicativo.messaggio, "esci") != 0) {
+				bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+				numeroDatiRicevuti = receivePacchetto(&socketCl, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
+				
+				fwrite(pacchettoApplicativo.messaggio, sizeof(char), sizeof(pacchettoApplicativo.messaggio), fileDaScrivere);
+			}
+			
+			fclose(fileDaScrivere);
+		}
 		
 		printf("Dati ricevuti: [%s] \n%s\n", pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 		
