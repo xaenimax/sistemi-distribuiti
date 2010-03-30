@@ -10,7 +10,7 @@
 // #include <time.h>
 // #include <signal.h>
 // #include <sys/wait.h>
-#include "general.h"
+#include "../general.h"
 
 
 #define SERVICE_PORT	7000

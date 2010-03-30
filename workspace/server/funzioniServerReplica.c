@@ -1,4 +1,4 @@
-#include "general.h"
+#include "../general.h"
 
 void spedisciFile(int *socketConnesso, FILE *fileDaLeggere, struct pacchetto *pacchettoApplicativo, int *numeroDatiRicevuti) {
 	int dimensioneDelFile, numeroDiByteLetti;

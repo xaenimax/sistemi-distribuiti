@@ -1,4 +1,4 @@
-#include "general.h"
+#include "../general.h"
 
 #define SERV_PORT   5193
 #define SERVICE_PORT	6000
