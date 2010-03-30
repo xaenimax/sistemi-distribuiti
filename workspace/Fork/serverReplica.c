@@ -15,7 +15,7 @@ void inviaListaFile(int *);
 int pid, pidServizio, i;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
-const char directoryDeiFile[] = "/home/alessandro/workspace/Fork/";
+const char directoryDeiFile[] = "~/workspace/Fork/";
 	
 main() {
 
@@ -174,50 +174,24 @@ void mainDelFiglio() {
 						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					}
 					
+					
+					//Se trovo il file lo spedisco al client.
 					else {
 						printf("  %d: File trovato!\n", getpid());
-						int dimensioneDelFile, numeroDiByteLetti;
-						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
-						
-						fseek(fileDaLeggere, 0L, SEEK_END);
-						dimensioneDelFile = ftell(fileDaLeggere);
-						fseek(fileDaLeggere, 0L, SEEK_SET);
+// 						int dimensioneDelFile, numeroDiByteLetti;
+// 						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
+			
+						spedisciFile(&connessioneNormale, fileDaLeggere, &pacchettoApplicativo, &numeroDatiRicevuti);
+ 						
+ 						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+ 						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 
-						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-						
-						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
-						strcpy(pacchettoApplicativo.messaggio, "File trovato");
-						strcpy(pacchettoApplicativo.nomeFile, nomeFileDaLeggere);
-						
-						sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
-						
-						while(dimensioneDelFile != numeroDiByteLetti) {
-							
-							bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-							bzero(bufferFileLetto, sizeof(bufferFileLetto));
-							
-							numeroDiByteLetti = numeroDiByteLetti + fread(bufferFileLetto, sizeof(char), sizeof(pacchettoApplicativo.messaggio), fileDaLeggere);
-						
-							memcpy(pacchettoApplicativo.messaggio, bufferFileLetto, sizeof(pacchettoApplicativo.messaggio));
-							
-							strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
-							sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
-							printf("i: %s\n", pacchettoApplicativo.messaggio);
-							printf("  %d: Inviati: %d / %d byte\n", getpid(), numeroDiByteLetti, dimensioneDelFile);
-						}
-						
-						printf("  %d: Terminata lettura del file, letti %d / %d byte\n", getpid(), numeroDiByteLetti, dimensioneDelFile);
-						
-						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-						
-						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
-						strcpy(pacchettoApplicativo.messaggio, "esci");
-						
-						sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
-						
-						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					}
+				}
+				
+				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0) {
+				
+					
 				}
 				
 				else {
