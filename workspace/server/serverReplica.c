@@ -10,12 +10,11 @@ void mainDelFiglioDiServizio();
 void acceptFiglioNormale();
 void acceptFiglioDiServizio();
 void interrompi();
-void inviaListaFile(int *);
 
 int pid, pidServizio, i;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
-const char directoryDeiFile[] = "~/workspace/Fork/fileCondivisi/";
+const char directoryDeiFile[] = "fileCondivisi/";
 	
 main() {
 
@@ -147,18 +146,19 @@ void mainDelFiglio() {
 				
 								//richiesta lista file
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "lista file") == 0) {
-					inviaListaFile(&connessioneNormale);
+					inviaListaFile(&connessioneNormale, directoryDeiFile);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 				}
 				
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file") == 0) {
-					
-					FILE *fileDaLeggere = fopen(pacchettoApplicativo.nomeFile, "rb");
 					char nomeFileDaLeggere[500];
 					
-					strcpy(nomeFileDaLeggere, pacchettoApplicativo.nomeFile);
+					strcpy(nomeFileDaLeggere, directoryDeiFile);
+					strcat(nomeFileDaLeggere, pacchettoApplicativo.nomeFile);
+					
+					FILE *fileDaLeggere = fopen(nomeFileDaLeggere, "rb");
 					
 					//se non trovo il file spedisco un messaggio e avverto il client
 					if(fileDaLeggere == NULL) {
@@ -174,10 +174,9 @@ void mainDelFiglio() {
 						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					}
 					
-					
 					//Se trovo il file lo spedisco al client.
 					else {
-						printf("  %d: File trovato!\n", getpid());
+						printf("  %d: File \'%s\' trovato!\n", getpid(), nomeFileDaLeggere);
 // 						int dimensioneDelFile, numeroDiByteLetti;
 // 						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
 			
@@ -242,7 +241,7 @@ void mainDelFiglioDiServizio() {
 			
 				//richiesta lista file
 				if(strcmp(pacchettoRicevuto.tipoOperazione, "lista file") == 0) {
-					inviaListaFile(&connessioneDiServizio);
+					inviaListaFile(&connessioneDiServizio, directoryDeiFile);
 					
 					bzero(&pacchettoRicevuto, sizeof(pacchettoRicevuto));
 					dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
@@ -285,34 +284,4 @@ void mainDelFiglioDiServizio() {
 void interrompi() {
 	printf("%d: Il server è stato terminato da console\n", getpid());
 	exit(0);
-}
-
-
-//Effettua la "dir" nella cartella del filesystem distribuito e la invia al client connesso al socket
-void inviaListaFile(int *socketConnesso) {
-	int numeroDiFileTrovati = 0;
-	struct direct **fileTrovati;
-	struct pacchetto pacchettoDaInviare;
-	char stringaDiFileTrovati[MAXLINE];
-	
-	//svuoto il buffer di invio
-	bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
-	
-	printf("  %d: Invio la lista file, come richiesto.\n", getpid());
-
-	numeroDiFileTrovati = scandir(directoryDeiFile, &fileTrovati, NULL, alphasort);
-
-		/* If no files found, make a non-selectable menu item */
-// 	if 		(numeroDiFileTrovati <= 0) {
-// 		printf("  %d: Nessun file trovato!\n", getpid());
-// 	}
-	
-// 	printf("  %d: Numero di file trovati: %d\n", getpid(), numeroDiFileTrovati);
-	
-	for (i=1;i<numeroDiFileTrovati+1;++i) {
-			sprintf(stringaDiFileTrovati, "%s\r\n", fileTrovati[i-1]->d_name);
-			strcat(pacchettoDaInviare.messaggio, stringaDiFileTrovati);
-	}
-	
-	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
