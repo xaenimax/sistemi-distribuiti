@@ -38,7 +38,8 @@ main() {
 	numeroMessaggioInviato = 1;
 	
 	while(1) {
-		
+					
+		FILE *fileDaLeggere;
 		//prima di fare qualsiasi cosa svuoto le strutture dati di invio per evitare che siano "sporche" e contengano dati di precedenti invii
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
@@ -58,58 +59,70 @@ main() {
 			inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 			strcpy(pacchettoApplicativo.nomeFile, stringaInseritaDallutente);
 		}
-		 
-		/* se l'invio del messaggio va a buon fine incremento di uno il numero di messaggio in modo tale che il prossimo messaggio abbia un numero progressivo già incrementato di uno */
-		if(sendPacchetto(&socketCl, &pacchettoApplicativo) > 0)
-			numeroMessaggioInviato++;
+		
+		if(strncmp("scrivi file", stringaInseritaDallutente, 10) == 0) {
+			printf("Inserire il nome del file che si intende scrivere:\n");
+			bzero(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+			inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+			strcpy(pacchettoApplicativo.nomeFile, stringaInseritaDallutente);
+			
+			char nomeFileDaLeggere[500];
+			
+			strcpy(nomeFileDaLeggere, cartellaDoveSalvareIfile);
+			strcat(nomeFileDaLeggere, pacchettoApplicativo.nomeFile);
+			
+			fileDaLeggere = fopen(nomeFileDaLeggere, "rb");
+			
+			//se non trovo il file spedisco un messaggio e avverto il client
+			if(fileDaLeggere == NULL) {
+				printf("  %d: File \'%s\'non trovato\n", getpid(), pacchettoApplicativo.nomeFile);
+				bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+				strcpy(pacchettoApplicativo.tipoOperazione, "non inviare");
+			}
+		}		 
+		
+		//evito di inviare il pacchetto se nel tipo operazione scrivo "non inviare". Ciò accade ad esempio quando l'utente inserisce un nome file da inviare
+		//che non trovo nella mia cartella.
+		if(strcmp(pacchettoApplicativo.tipoOperazione, "non inviare") != 0) {
+			/* se l'invio del messaggio va a buon fine incremento di uno il numero di messaggio in modo tale che il prossimo messaggio abbia un numero progressivo già incrementato di uno */
+			if(sendPacchetto(&socketCl, &pacchettoApplicativo) > 0)
+				numeroMessaggioInviato++;
 	
-		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
+			printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 
-		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+			receivePacchetto(&socketCl, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
+		}
 		
-		receivePacchetto(&socketCl, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
-		
+		//se il server ha trovato il file me lo comunica e comincio a scriverlo
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file, trovato") == 0) {
 			
 			char nomeFileDaScrivereConPercorso[sizeof(cartellaDoveSalvareIfile) + sizeof(pacchettoApplicativo.nomeFile)];
 			strcpy(nomeFileDaScrivereConPercorso, cartellaDoveSalvareIfile);
 			strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
 			
-			FILE *fileDaScrivere = fopen(nomeFileDaScrivereConPercorso, "wb");
-			
-			unsigned long int dimensioneDelFileRicevuto = atoi(pacchettoApplicativo.messaggio);
-			int numeroDiPartiCompleteDaRicevere = dimensioneDelFileRicevuto / (sizeof(pacchettoApplicativo.messaggio)-5);
-			unsigned long int numeroDiDatiScritti = 0;
-			
-			while(numeroDiPartiCompleteDaRicevere >= 0) {
-				bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-				
-				receivePacchetto(&socketCl, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
-				
-				if(numeroDiPartiCompleteDaRicevere != 0) {					
-					numeroDiDatiScritti = numeroDiDatiScritti + fwrite(pacchettoApplicativo.messaggio, 1, (sizeof(pacchettoApplicativo.messaggio)-5), fileDaScrivere);
-					printf("[%s] Scritti %ld dati.\n", pacchettoApplicativo.tipoOperazione, numeroDiDatiScritti);
-				}
-				
-				if(numeroDiPartiCompleteDaRicevere == 0) {
-					int dimensioneUltimaParteDaRicevere = dimensioneDelFileRicevuto % (sizeof(pacchettoApplicativo.messaggio)-5);
-					numeroDiDatiScritti = numeroDiDatiScritti + fwrite(pacchettoApplicativo.messaggio, 1, dimensioneUltimaParteDaRicevere, fileDaScrivere);
-					printf("[%s] Scritti %ld dati.\n", pacchettoApplicativo.tipoOperazione, numeroDiDatiScritti);
-				}
-				numeroDiPartiCompleteDaRicevere--;
-			}
-			
-			printf("[%s] Ho scritto %ld dati.\n", pacchettoApplicativo.tipoOperazione, numeroDiDatiScritti);
-			
-			fclose(fileDaScrivere);
+			riceviFile(&socketCl, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 		}
 		
+		//se il server è pronto a ricevere il file me lo comunica e inizio l'invio
+		if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file, pronto a ricevere") == 0) {
+			
+			spedisciFile(&socketCl, fileDaLeggere, &pacchettoApplicativo);	
+ 			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	
+		}
+		
+		//se il server fa una qualunque altra operazione che non sia collegata al file trovato, stampo il messaggio che altrimenti sarebbe incomprensibile
+		if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file, trovato") < 0) {
+			printf("[%s] %s\n", pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
+		}
+		
+		//operazione di uscita
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "Arrivederci") == 0) {
 			printf("[%s] %s\n", pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 			closeSocket(&socketCl);
 			break;
 		}
-		
 	}
 	
 // 		close(socketCl);

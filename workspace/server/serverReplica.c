@@ -180,7 +180,7 @@ void mainDelFiglio() {
 // 						int dimensioneDelFile, numeroDiByteLetti;
 // 						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
 			
-						spedisciFile(&connessioneNormale, fileDaLeggere, &pacchettoApplicativo, &numeroDatiRicevuti);
+						spedisciFile(&connessioneNormale, fileDaLeggere, &pacchettoApplicativo);
  						
  						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
  						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -189,8 +189,28 @@ void mainDelFiglio() {
 				}
 				
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0) {
-				
 					
+					char nomeFileDaScrivere[350];
+					strcpy(nomeFileDaScrivere, pacchettoApplicativo.nomeFile);
+					
+					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					strcpy(pacchettoApplicativo.tipoOperazione, "scrivi file, pronto a ricevere");
+					strcpy(pacchettoApplicativo.nomeFile, nomeFileDaScrivere);
+					
+					//dico al client che sono pronto a ricevere
+					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+					
+					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
+					
+					char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
+					strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
+					strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
+				
+					riceviFile(&connessioneNormale, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
+											
+					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
 				}
 				
 				else {
@@ -198,7 +218,7 @@ void mainDelFiglio() {
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");
-					strcpy(pacchettoApplicativo.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: Lista File, Uscita");
+					strcpy(pacchettoApplicativo.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: lista file, uscita");
 					
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
