@@ -18,11 +18,7 @@ main(int argc, char *argv[]) {
 		exit(-1);
 	}
 	
-	printf("argv: %s\n", argv[1]);
-	
 	strcpy(indirizzoIpDelServer, argv[1]);
-	
-	printf("IP: %s\n", indirizzoIpDelServer);
 	
 	createSocketStream(&socketCl);
 	
