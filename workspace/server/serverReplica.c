@@ -128,14 +128,13 @@ void mainDelFiglio() {
 			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 
 			while(numeroDatiRicevuti > 0) {
-				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
+// 				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
 				
 				//se il client chiede il logout chiudo la connessione
-				if(strcmp(pacchettoApplicativo.tipoOperazione, "uscita") == 0) {
+				if(strcmp(pacchettoApplicativo.tipoOperazione, "uscita") == 0) {					
+					printf("  %d:[%s] Il client chiude la connessione\n", getpid(), pacchettoApplicativo.tipoOperazione);
+					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-					
-					printf("  %d: Il client chiude la connessione\n", getpid());
-					
 					strcpy(pacchettoApplicativo.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoApplicativo.messaggio, "Arrivederci");
 
@@ -162,7 +161,7 @@ void mainDelFiglio() {
 					
 					//se non trovo il file spedisco un messaggio e avverto il client
 					if(fileDaLeggere == NULL) {
-						printf("  %d: File \'%s\'non trovato\n", getpid(), pacchettoApplicativo.nomeFile);
+						printf("  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.nomeFile);
 						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 						
 						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
@@ -176,7 +175,7 @@ void mainDelFiglio() {
 					
 					//Se trovo il file lo spedisco al client.
 					else {
-						printf("  %d: File \'%s\' trovato!\n", getpid(), nomeFileDaLeggere);
+						printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo.tipoOperazione, nomeFileDaLeggere);
 // 						int dimensioneDelFile, numeroDiByteLetti;
 // 						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
 			
@@ -216,7 +215,7 @@ void mainDelFiglio() {
 				}
 				
 				else {
-					printf("  %d: Operazione non riconosciuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
+					printf("  %d:[%s] Operazione non riconosciuta\n",getpid(), pacchettoApplicativo.tipoOperazione);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");
@@ -273,7 +272,7 @@ void mainDelFiglioDiServizio() {
 				else if (strcmp(pacchettoRicevuto.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
 					
-					printf("  %d: Il client chiude la connessione\n", getpid());
+					printf("  %d:[%s] Il client chiude la connessione\n",getpid(), pacchettoRicevuto.tipoOperazione);
 					
 					strcpy(pacchettoDaInviare.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoDaInviare.messaggio, "Arrivederci");
@@ -290,7 +289,7 @@ void mainDelFiglioDiServizio() {
 					
 // 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
-					printf("  %d: Operazione \'%s\' non riconosciuta.\n", getpid(), pacchettoRicevuto.messaggio);
+					printf("  %d:[%s] Operazione non riconosciuta.\n", getpid(), pacchettoRicevuto.tipoOperazione);
 					
 					bzero(&pacchettoRicevuto, sizeof(pacchettoRicevuto));
 					dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
