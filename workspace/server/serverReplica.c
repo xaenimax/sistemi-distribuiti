@@ -191,7 +191,9 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0) {
 					
 					char nomeFileDaScrivere[350];
+
 					strcpy(nomeFileDaScrivere, pacchettoApplicativo.nomeFile);
+					generaIDtransazione(pacchettoApplicativo.idTransazione);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "scrivi file, pronto a ricevere");
