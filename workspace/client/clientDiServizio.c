@@ -4,14 +4,25 @@
 #define MAXLINE		1024
 /* Questo Client è usato per provare le funzioni di servizio del server */
 
-main() {
+main(int argc, char *argv[]) {
 
 	int socketCl, numeroDatiRicevuti, i, numeroMessaggioInviato;
 	char stringaInseritaDallutente[MAXLINE];
-	const char IP_ADDRESS[] = "160.80.133.109";	
+	char indirizzoIpDelServer[15];	
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
 	char *cartellaDoveSalvareIfile = "fileCondivisi/";
+	
+	if(strlen(argv[1]) < 8) {
+		printf("E' necessario specificare l'IP del server da contattare\n");
+		exit(-1);
+	}
+	
+	printf("argv: %s\n", argv[1]);
+	
+	strcpy(indirizzoIpDelServer, argv[1]);
+	
+	printf("IP: %s\n", indirizzoIpDelServer);
 	
 	createSocketStream(&socketCl);
 	
@@ -20,7 +31,7 @@ main() {
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(SERV_PORT);
 	
-	if(inet_pton(AF_INET, IP_ADDRESS, &servaddr.sin_addr) <= 0) {
+	if(inet_pton(AF_INET, indirizzoIpDelServer, &servaddr.sin_addr) <= 0) {
 		perror("Errore nella conversione dell'indirizzo");
 		exit(-1);
 	}
