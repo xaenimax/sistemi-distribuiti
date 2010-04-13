@@ -8,7 +8,7 @@ main() {
 
 	int socketCl, numeroDatiRicevuti, i, numeroMessaggioInviato;
 	char stringaInseritaDallutente[MAXLINE];
-	const char IP_ADDRESS[] = "127.0.0.1";	
+	const char IP_ADDRESS[] = "160.80.133.109";	
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
 	char *cartellaDoveSalvareIfile = "fileCondivisi/";
