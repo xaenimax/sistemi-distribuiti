@@ -1,24 +1,17 @@
 #include "../general.h"
 
-#define SERV_PORT		5193
+#define SERV_PORT	5193
 #define MAXLINE		1024
 /* Questo Client è usato per provare le funzioni di servizio del server */
 
-main(int argc, char *argv[]) {
+main() {
 
 	int socketCl, numeroDatiRicevuti, i, numeroMessaggioInviato;
 	char stringaInseritaDallutente[MAXLINE];
-	char indirizzoIpDelServer[15];	
+	const char IP_ADDRESS[] = "160.80.133.109";	
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
-	char *cartellaDoveSalvareIfile = "fileCondivisi/";
-	
-	if(strlen(argv[1]) < 8) {
-		printf("E' necessario specificare l'IP del server da contattare\n");
-		exit(-1);
-	}
-	
-	strcpy(indirizzoIpDelServer, argv[1]);
+	char *cartellaDoveSalvareIfile = "+èfileCondivisi/";
 	
 	createSocketStream(&socketCl);
 	
@@ -27,7 +20,7 @@ main(int argc, char *argv[]) {
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(SERV_PORT);
 	
-	if(inet_pton(AF_INET, indirizzoIpDelServer, &servaddr.sin_addr) <= 0) {
+	if(inet_pton(AF_INET, IP_ADDRESS, &servaddr.sin_addr) <= 0) {
 		perror("Errore nella conversione dell'indirizzo");
 		exit(-1);
 	}
@@ -60,14 +53,14 @@ main(int argc, char *argv[]) {
 		//se l'utente vuole leggere un file, chiedo il nome del file che vuole leggere
 		//ATTENZIONE! Siccome Vienna sta lavorando sul client normale, scrivo questa funzione qua
 		//che andrà spostata dentro il client normale
-		if(strncmp("leggi file", stringaInseritaDallutente, 11) == 0) {
+		if(strncmp("leggi file", stringaInseritaDallutente, 10) == 0) {
 			printf("Inserire il nome del file che si intende leggere:\n");
 			bzero(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 			inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 			strcpy(pacchettoApplicativo.nomeFile, stringaInseritaDallutente);
 		}
 		
-		if(strncmp("scrivi file", stringaInseritaDallutente, 11) == 0) {
+		if(strncmp("scrivi file", stringaInseritaDallutente, 10) == 0) {
 			printf("Inserire il nome del file che si intende scrivere:\n");
 			bzero(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 			inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
@@ -87,10 +80,6 @@ main(int argc, char *argv[]) {
 				strcpy(pacchettoApplicativo.tipoOperazione, "non inviare");
 			}
 		}		 
-		
-		if(strncmp("commit", stringaInseritaDallutente, 6) == 0) {
-			
-		}
 		
 		//evito di inviare il pacchetto se nel tipo operazione scrivo "non inviare". Ciò accade ad esempio quando l'utente inserisce un nome file da inviare
 		//che non trovo nella mia cartella.
@@ -115,7 +104,7 @@ main(int argc, char *argv[]) {
 			riceviFile(&socketCl, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 		}
 		
-		//se il server è pronto a ricevere il file me lo comunica, insieme all'id transazione e inizio l'invio
+		//se il server è pronto a ricevere il file me lo comunica e inizio l'invio
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file, pronto a ricevere") == 0) {
 			
 			spedisciFile(&socketCl, fileDaLeggere, &pacchettoApplicativo);	
