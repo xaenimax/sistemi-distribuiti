@@ -3,28 +3,10 @@
 #include <unistd.h>
 #include <semaphore.h>
 
-void accessoMutuaEsclusione();
+void accessoMutuaEsclusione(int*);
 
 sem_t mutex;
-
-void accessoMutuaEsclusione(){
-  
-  char pippo[5];
-  sem_wait(&mutex);
-  
-  //operazione di scrittura
-  fflush(stdout);
-  printf("[%d]Accesso zona mutua esclusione\n",getpid() );
-  int contatore=567+37575;
-  
-  sleep (1);
-  fgets(pippo,5,stdin);
-  printf("%s\n",pippo);
-  fflush(stdout);
- 
-  sem_post(&mutex);
-
-}
+int variabileCondivisa = 10;
 
 void main(){
   pid_t pid;
@@ -33,14 +15,32 @@ void main(){
   int i;
 
   for(i =0;i<10;i++){
-    if((pid=fork())==0){
-      printf("[%d] sono il figlio \n",getpid());
-      accessoMutuaEsclusione();
+		pid=fork();
+    if(pid==0){
+      printf("[%d] Sono nato! :D \n",getpid());
+      accessoMutuaEsclusione(&variabileCondivisa);
       exit(0);
     }
   }
-  if(pid!=0)
-     printf("[%d] sono il padre \n",getpid());
+	
+  if(pid!=0) {
+    printf("[%d] Sono il padre \n",getpid());
+		sleep(5);
+		printf("[%d] Avete finito, ora var vale %d. \n",getpid(), variabileCondivisa);
+		exit(0);
+	}
  
+
+}
+
+void accessoMutuaEsclusione(int *variabileCon){
+  
+	printf("[%d] Sono in attesa... \n",getpid());
+  sem_wait(&mutex);
+  printf("[%d] Wow, ora tocca a me, incremento %d di 1. \n",getpid(), *variabileCon);
+	*variabileCon = *variabileCon + 1;
+  //operazione di scrittura
+  sem_post(&mutex);
+	printf("[%d] Fatto! Potete entrare! Var:%d\n",getpid(), *variabileCon);
 
 }
