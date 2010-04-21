@@ -143,7 +143,7 @@ void mainDelFiglio() {
 					numeroDatiRicevuti = 0; //faccio in modo di uscire dal ciclo di attesa di dati da ricevere
 				}
 				
-								//richiesta lista file
+				//richiesta lista file
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "lista file") == 0) {
 					inviaListaFile(&connessioneNormale, directoryDeiFile);
 					
