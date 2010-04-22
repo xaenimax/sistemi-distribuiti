@@ -1,0 +1,13 @@
+dopo il commit occorre cmq dare un esito positivo o negativo
+scenario:
+clienta scrive un file (crea una copia temporanea)
+clientb scrive stesso file (crea una nuova copia)
+il clientb NON deve vedere la copia temporanea A
+
+commit deve essere ordinato rispetto a TUTTI i server con clock logici vettoriali
+
+un solo processo servente (processo di servizio) che gestisce il commit che si basa sull'algoritmo di agrawala
+
+
+--marina
+implementa la scrittura di file, come append e e copia temporanea sul server dopo la commit salva la copia, la commit sarà definita meglio in futuro.
