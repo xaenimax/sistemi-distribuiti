@@ -67,7 +67,7 @@ main(int argc, char *argv[]) {
 			strcpy(pacchettoApplicativo.nomeFile, stringaInseritaDallutente);
 		}
 		
-		if(strncmp("scrivi file", stringaInseritaDallutente, 11) == 0) {
+		if(strncmp("copia file", stringaInseritaDallutente, 11) == 0) {
 			printf("Inserire il nome del file che si intende scrivere:\n");
 			bzero(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 			inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
@@ -116,7 +116,7 @@ main(int argc, char *argv[]) {
 		}
 		
 		//se il server è pronto a ricevere il file me lo comunica, insieme all'id transazione e inizio l'invio
-		if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file, pronto a ricevere") == 0) {
+		if(strcmp(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere") == 0) {
 			
 			spedisciFile(&socketCl, fileDaLeggere, &pacchettoApplicativo);	
  			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
