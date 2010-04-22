@@ -1,4 +1,4 @@
-#include "../general.h"
+#include "general.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -114,7 +114,10 @@ main() {
 			close(socketCl);
 		//} //end while recv
 
-		//adesso il client apre un nuovo socket per connettersi al server replica ricevuto dal dns
+		//*******************parte connessione******************************************************************
+			//adesso il client apre un nuovo socket per connettersi al server replica ricevuto dal dns
+
+
 
 
 
