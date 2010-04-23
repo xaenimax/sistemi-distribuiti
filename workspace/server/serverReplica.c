@@ -15,7 +15,8 @@ int pid, pidServizio, i;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
 const char directoryDeiFile[] = "fileCondivisi/";
-	
+char fileDiCuiSiIntendeFareIlCommit[10][100];
+
 main() {
 
 	printf("%d: Avvio del server...\n", getpid());
@@ -240,7 +241,7 @@ void mainDelFiglioDiServizio() {
 		if(pid == 0) 
 		{
 			int dimensioneDatiRicevuti;
-			char pippo[10];
+// 			char pippo[10];
 			struct pacchetto pacchettoRicevuto, pacchettoDaInviare;
 
 			closeSocket(&listenDiServizio);

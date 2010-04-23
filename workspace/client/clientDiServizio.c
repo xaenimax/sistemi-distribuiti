@@ -13,12 +13,13 @@ main(int argc, char *argv[]) {
 	struct pacchetto pacchettoApplicativo;
 	char *cartellaDoveSalvareIfile = "fileCondivisi/";
 	
-	if(strlen(argv[1]) < 8) {
-		printf("E' necessario specificare l'IP del server da contattare\n");
-		exit(-1);
-	}
+	if(argc < 2) {
+		strcpy (indirizzoIpDelServer, "127.0.0.1");
+		printf("E' necessario specificare l'IP del server da contattare. E' stato assegnato l'IP di default: %s\n", indirizzoIpDelServer);
+	}	
 	
-	strcpy(indirizzoIpDelServer, argv[1]);
+	else
+		strcpy(indirizzoIpDelServer, argv[1]);
 	
 	createSocketStream(&socketCl);
 	

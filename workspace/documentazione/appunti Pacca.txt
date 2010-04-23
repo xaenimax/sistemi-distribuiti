@@ -1,0 +1,8 @@
+Il server per fare il commit ascolta sulla porta di servizio eventuali richieste. Il client contatterà il server sulla porta di servizio solo per il commit.
+Il server, ricevuta la richiesta di commit andrà a inviare un messaggio agli altri server, sempre sulla porta di servizio, e attenderà che essi rispondano
+alla richiesta di commit.
+
+- Se rispondono tutti potrà procedere a effettuare il commit
+- Se non rispondono tutti, chi ha ID più piccolo procederà a effettuare il commit, manderà gli aggiornamenti al server che vuole fare il commit e quest'ultimo potrà effettare il commit.
+
+Il server, per sapere a chi inviare il messaggio, contatta il DNS che gli darà la lista dei server attualmente attivi.
