@@ -1,4 +1,5 @@
 #include "general.h"
+#include "funzioniGeneriche.h"
 
 //Serve ad inserire del testo da stdin. Salva il testo in buffer
 void inserisciTesto(char *bufferDoveInserireIlTesto, int dimensioneDelBufferDiTesto) {
@@ -37,7 +38,7 @@ void generaIDtransazione(char *idTransazione) {
 	idTransazione[10] = '\0';
 }
 
-
+/*spedisce un file al client creando una copia*/
 void spedisciFile(int *socketConnesso, FILE *fileDaLeggere, struct pacchetto *pacchettoApplicativo) {
 	unsigned long int dimensioneDelFile = 0, numeroDiByteLetti = 0;
 	char bufferFileLetto[sizeof(pacchettoApplicativo->messaggio)];
