@@ -1,4 +1,5 @@
 #include "general.h"
+#include "funzioniDNS.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -86,7 +87,7 @@ char *contattaDNS() {
 
  		byte_ricevuti = receivePacchetto(&socketCl, &risposta, sizeof(risposta), 0);
 
- 		// FARE //##############################àbzero(&richiesta, sizeof(richiesta)); //riazzero il pacchetto per utilizzi successivi
+ 		// FARE //##############################bzero(&richiesta, sizeof(richiesta)); //riazzero il pacchetto per utilizzi successivi
 
  		printf("Ricevuto Indirizzo Server Replica: %s", risposta.messaggio);
 
