@@ -1,4 +1,5 @@
 #include "general.h"
+#include "funzioniSocket.h"
 
 //inizializza la struct sockaddr_in
 void inizializza_memset(struct sockaddr_in* servaddr, int porta) {
