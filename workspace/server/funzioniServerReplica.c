@@ -1,4 +1,10 @@
 #include "../general.h"
+// #include "funzioniServerReplica.h"
+#include "../funzioniGeneriche.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 //Effettua la "dir" nella cartella del filesystem distribuito e la invia al client connesso al socket
 
 void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
@@ -30,7 +36,7 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
 
-int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercorso){
+int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercorso,struct pacchetto *pacchettoApplicativo,int *destinazione){
 	
 	FILE 	*fileDiScritturaMomentanea=fopen(IDgenerato,"a");
 	FILE *fileOriginaleDaCopiare=fopen(nomeFileDaSostituireConPercorso,"rb");
@@ -40,7 +46,7 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 	
 	char buffer[500], stringaImmessa[100];
 	
-	
+			
 	printf("Apro il primo file temporaneo\n");
 	// apro i file con relativi controlli di errore
 	if (fileDiScritturaMomentanea<0){
@@ -75,13 +81,20 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 	printf("Copia completata\n");
 	
 // prende le cose scritte dall'utente e le aggiunge al file temporaneo
-	while((strcmp(stringaImmessa,"commit\n")!=0)&&(strcmp(stringaImmessa,"abort\n")!=0)){
-		bzero(stringaImmessa,sizeof(stringaImmessa));
-		inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
+	//svuoto il buffer di invio
+	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	strcpy(pacchettoApplicativo->messaggio,"inserisci le modifiche, scrivi commit per effettuarle, abort per annullare\n");
+	
+	while((strcmp(pacchettoApplicativo->messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort\n")!=0)){
+		sendPacchetto(&destinazione,&pacchettoApplicativo);
+		bzero(pacchettoApplicativo->messaggio,sizeof(pacchettoApplicativo->messaggio));
+				
+		/*inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
 		printf("Stai scrivendo %s\n",stringaImmessa);
 		strcat(stringaImmessa,"\n");
 		if(strcmp(stringaImmessa,"commit\n")!=0)
-			fwrite(stringaImmessa,1,strlen(stringaImmessa),fileDiScritturaMomentanea);	
+			fwrite(stringaImmessa,1,strlen(stringaImmessa),fileDiScritturaMomentanea);*/	
+		
 	}
 	printf("Esce dal while di ricezione dei messaggi utente \n");
 	if(strcmp(stringaImmessa,"commit\n")==0){
@@ -92,12 +105,14 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 			perror("Errore di cancellazione del file originale da sostituire");
 			exit(-1);
 		}
+		
 		if(rename(IDgenerato,nomeFileDaSostituireConPercorso)<0){
 			perror("Errore nella rinomina del file\n");
 			exit(-1);
 		}
-		printf("Operazione terminata con successo\n");
+		printf("Operazione di scrittura terminata con successo\n");
 	}
+	
 	if(strcmp(stringaImmessa,"abort\n")==0){
 		if(remove(IDgenerato)<0){
 			perror("Errore nella cancellazione del file momentaneo abortito in scrittura");
@@ -105,6 +120,7 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 		}
 		printf("Operazione annullata\n");
 	}
+	
 	fclose(fileDiScritturaMomentanea);
 	fclose(fileOriginaleDaCopiare);
 	return 1;

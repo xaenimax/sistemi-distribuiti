@@ -1,4 +1,6 @@
 #include "../general.h"
+// #include "funzioniServerReplica.h"
+// #include "../funzioniGeneriche.h"
 
 #define SERV_PORT   5193
 #define SERVICE_PORT	6000
@@ -10,6 +12,7 @@ void mainDelFiglioDiServizio();
 void acceptFiglioNormale();
 void acceptFiglioDiServizio();
 void interrompi();
+
 
 int pid, pidServizio, i;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
@@ -70,8 +73,6 @@ void acceptFiglioNormale() {
 				pid = fork();
 			
 				mainDelFiglio();
-			
-				int ritornoPid;
 				
 				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
@@ -189,7 +190,7 @@ void mainDelFiglio() {
 				}
 				
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "copia file") == 0) {
-					
+									
 					char nomeFileDaScrivere[350];
 
 					strcpy(nomeFileDaScrivere, pacchettoApplicativo.nomeFile);
@@ -215,12 +216,19 @@ void mainDelFiglio() {
 					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
 				}
 				
+				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
+					printf("Generazione ID in corso\n");
+					char IDTransazione[10];
+					generaIDtransazione(IDTransazione);
+					richiestaScritturaFile(pacchettoApplicativo.nomeFile,IDTransazione);
+				}
+				
 				else {
 					printf("  %d:[%s] Operazione non riconosciuta\n",getpid(), pacchettoApplicativo.tipoOperazione);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");
-					strcpy(pacchettoApplicativo.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: lista file, uscita");
+					strcpy(pacchettoApplicativo.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: leggi file, lista file, copia file, scrivi file, uscita");
 					
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
@@ -236,7 +244,7 @@ void mainDelFiglio() {
 }
 
 //questo main dovrà essere usato per gestire le richieste di servizio.
-void mainDelFiglioDiServizio() {
+void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 	
 		if(pid == 0) 
 		{

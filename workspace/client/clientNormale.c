@@ -79,10 +79,26 @@ main() {
 		
 		if(sendPacchetto(&socketCL, &pacchettoApplicativo) > 0)
 			numeroMessaggioInviato++;
-		
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		
+// 		riceve il pacchetto dal server se ha risposto al tentativo di scrittura
+		if(strcmp(pacchettoApplicativo.idTransazione,"")!=0)
+		{
+			while((strcmp(pacchettoApplicativo.messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo.messaggio,"abort\n")!=0))
+			{
+				printf("%s",pacchettoApplicativo.messaggio);
+				//se c'è una richiesta di scrittura allora si manda l'id di transazione, dopodichè il server chiede con un while infinito di inserire le modifiche
+// 				una fatto commit da parte dell'utente si sottomettono le modifiche effettuate, altrimenti l'abort fa eliminare il file temporaneo
+				char stringaImmessa[100];
+				inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
+				strcat(stringaImmessa,"\n");
+				strcat(stringaImmessa,pacchettoApplicativo.messaggio);
+				sendPacchetto(&socketCL, &pacchettoApplicativo);
+				
+				receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+				
+			}
+		}
 		printf("Operazione ricevuta: %s\n", pacchettoApplicativo.tipoOperazione);
 		
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "Arrivederci") == 0) {
