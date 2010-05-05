@@ -1,6 +1,6 @@
-#include "general.h"
+#include "../general.h"
 // #include "funzioniServerReplica.h"
-#include "funzioniGeneriche.h"
+#include "../funzioniGeneriche.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -85,9 +85,11 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 	strcpy(pacchettoApplicativo->messaggio,"inserisci le modifiche, scrivi commit per effettuarle, abort per annullare\n");
 	
-	while((strcmp(pacchettoApplicativo->messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort\n")!=0)){
-		sendPacchetto(&destinazione,&pacchettoApplicativo);
-		bzero(pacchettoApplicativo->messaggio,sizeof(pacchettoApplicativo->messaggio));
+	while((strcmp(pacchettoApplicativo->messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort\n")!=0))
+	{
+		strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+		sendPacchetto(destinazione,pacchettoApplicativo);
+		receivePacchetto(destinazione, pacchettoApplicativo, sizeof(struct pacchetto));
 				
 		/*inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
 		printf("Stai scrivendo %s\n",stringaImmessa);
@@ -95,32 +97,37 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 		if(strcmp(stringaImmessa,"commit\n")!=0)
 			fwrite(stringaImmessa,1,strlen(stringaImmessa),fileDiScritturaMomentanea);*/	
 		
-	}
-	printf("Esce dal while di ricezione dei messaggi utente \n");
-	if(strcmp(stringaImmessa,"commit\n")==0){
+
+		
+		if(strcmp(stringaImmessa,"commit\n")==0)
+		{
 // 		richiama il metodo con l'algoritmo di agrawala
 // dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
 		
-		if(remove(nomeFileDaSostituireConPercorso)<0){
-			perror("Errore di cancellazione del file originale da sostituire");
-			exit(-1);
+			if(remove(nomeFileDaSostituireConPercorso)<0)
+			{
+				perror("Errore di cancellazione del file originale da sostituire");
+				exit(-1);
+			}
+		
+			if(rename(IDgenerato,nomeFileDaSostituireConPercorso)<0)
+			{
+				perror("Errore nella rinomina del file\n");
+				exit(-1);
+			}
+		printf("Operazione di scrittura terminata con successo\n");
 		}
 		
-		if(rename(IDgenerato,nomeFileDaSostituireConPercorso)<0){
-			perror("Errore nella rinomina del file\n");
-			exit(-1);
+		if(strcmp(stringaImmessa,"abort\n")==0)
+		{
+			if(remove(IDgenerato)<0){
+				perror("Errore nella cancellazione del file momentaneo abortito in scrittura");
+				exit(-1);
+			}
+			printf("Operazione annullata\n");
 		}
-		printf("Operazione di scrittura terminata con successo\n");
+		bzero(pacchettoApplicativo->messaggio,sizeof(pacchettoApplicativo->messaggio));
 	}
-	
-	if(strcmp(stringaImmessa,"abort\n")==0){
-		if(remove(IDgenerato)<0){
-			perror("Errore nella cancellazione del file momentaneo abortito in scrittura");
-			exit(-1);
-		}
-		printf("Operazione annullata\n");
-	}
-	
 	fclose(fileDiScritturaMomentanea);
 	fclose(fileOriginaleDaCopiare);
 	return 1;

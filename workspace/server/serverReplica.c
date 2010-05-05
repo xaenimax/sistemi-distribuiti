@@ -217,14 +217,15 @@ void mainDelFiglio() {
 				}
 				
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
-					printf("Generazione ID in corso\n");
+					
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					richiestaScritturaFile(pacchettoApplicativo.nomeFile,IDTransazione);
+					printf("Generazione ID in corso %s\n",IDTransazione);
+					richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,ntohs(ricevutoSuAddr.sin_port));
 				}
 				
 				else {
-					printf("  %d:[%s] Operazione non riconosciuta\n",getpid(), pacchettoApplicativo.tipoOperazione);
+					printf("  %d:[%s] Operazione non riconosciuta\n",getpid(), pacchettoApplicativo.tipoOperazione,ntohs(ricevutoSuAddr.sin_port));
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");

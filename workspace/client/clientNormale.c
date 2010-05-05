@@ -52,7 +52,7 @@ main() {
 	inetPton(&servaddr, indirizzo_servreplica); //ora è preso dinamicamente
 
 	connectSocket(&socketCL, &servaddr);
-	printf("%d %s",servaddr.sin_port,(char*)inet_ntoa(servaddr.sin_addr));
+	printf("%d %s",ntohs(servaddr.sin_port),(char*)inet_ntoa(servaddr.sin_addr));
 
 	while(1) {
 		
