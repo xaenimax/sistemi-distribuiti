@@ -32,16 +32,6 @@ main() {
 
 
 
-
-
-
-
-
-
-
-
-
-
 	int socketCL, numeroDatiRicevuti, i, numeroMessaggioInviato;
 	//const char IP_ADDRESS[] = "127.0.0.1";  //togli, ora è preso dinamicamente
 	struct sockaddr_in servaddr;
@@ -62,6 +52,7 @@ main() {
 	inetPton(&servaddr, indirizzo_servreplica); //ora è preso dinamicamente
 
 	connectSocket(&socketCL, &servaddr);
+	printf("%d %s",servaddr.sin_port,(char*)inet_ntoa(servaddr.sin_addr));
 
 	while(1) {
 		
@@ -81,9 +72,15 @@ main() {
 			numeroMessaggioInviato++;
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		printf("%s",pacchettoApplicativo.messaggio);
+		printf("id generato= %s lunghezza %d" ,pacchettoApplicativo.idTransazione, (int)strlen(pacchettoApplicativo.idTransazione));
+		
+		
 // 		riceve il pacchetto dal server se ha risposto al tentativo di scrittura
-		if(strcmp(pacchettoApplicativo.idTransazione,"")!=0)
-		{
+// ****************************Marina	
+	if(strlen(pacchettoApplicativo.idTransazione)==10)
+	{
+			printf("id transazione generato \n");
 			while((strcmp(pacchettoApplicativo.messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo.messaggio,"abort\n")!=0))
 			{
 				printf("%s",pacchettoApplicativo.messaggio);
@@ -98,7 +95,13 @@ main() {
 				receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				
 			}
-		}
+	}
+// 		*******************************Marina
+		
+		
+		
+		
+		
 		printf("Operazione ricevuta: %s\n", pacchettoApplicativo.tipoOperazione);
 		
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "Arrivederci") == 0) {
