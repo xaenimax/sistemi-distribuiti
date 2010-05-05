@@ -1,27 +1,31 @@
-all : serverReplica.c ../funzioniGeneriche.c ../funzioniSocket.c funzioni_dns.c DNSserver.c funzioniServerReplica.c
-#	gcc -o serverConFork serverConForkEselect.c function.c
-# Attenzione, non compilo il file che contiene il server con Fork e select!
-	gcc -o serverReplica serverReplica.c ../funzioniGeneriche.c ../funzioniSocket.c funzioniServerReplica.c
-#	gcc -o clientNormale clientNormale.c funzioniGeneriche.c funzioniSocket.c 
-# gcc -o clientDiServizio clientDiServizio.c funzioniGeneriche.c funzioniSocket.c 
-	gcc -o DNSserver DNSserver.c funzioni_dns.c ../funzioniGeneriche.c ../funzioniSocket.c 
-#	gcc -o clientDNS clientDNS.c funzioniGeneriche.c funzioniSocket.c 
-	
-DNSserver : DNSserver.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c
-	gcc -o DNSserver DNSserver.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c
-	
-#clientDNS : clientDNS.c funzioniGeneriche.c funzioniSocket.c 
-#	gcc -o clientDNS clientDNS.c funzioniGeneriche.c funzioniSocket.c 
-	
-serverReplica : serverReplica.c funzioniGeneriche.c funzioniSocket.c funzioniServerReplica.c
-	gcc -o serverReplica serverReplica.c ../funzioniGeneriche.c ../funzioniSocket.c funzioniServerReplica.c
-	
-serverConFork : serverConForkEselect.c funzioniGeneriche.c funzioniSocket.c 
-	gcc -o serverConFork serverConForkEselect.c ../funzioniGeneriche.c ../funzioniSocket.c 
+all : serverReplica.c DNSserver.c
 
-#clientNormale : clientNormale.c funzioniGeneriche.c funzioniSocket.c 
-#	gcc -o clientNormale clientNormale.c funzioniGeneriche.c funzioniSocket.c 
-	
-#clientDiServizio : clientDiServizio.c funzioniGeneriche.c funzioniSocket.c 
-#	gcc -o clientDiServizio clientDiServizio.c funzioniGeneriche.c funzioniSocket.c 
+	gcc -o serverReplica serverReplica.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniServerReplica.c
+	gcc -o DNSserver DNSserver.c ../funzioniDNSserver.c ../funzioniGeneriche.c ../funzioniSocket.c 	
 
+	
+serverReplica : serverReplica.o ../funzioniGeneriche.o ../funzioniSocket.o ../funzioniServerReplica.o
+	gcc serverReplica.o ../funzioniGeneriche.o ../funzioniSocket.o ../funzioniServerReplica.o -o serverReplica
+
+DNSserver : DNSserver.o ../funzioniDNSserver.o ../funzioniGeneriche.o ../funzioniSocket.o 
+	gcc DNSserver.o ../funzioniDNSserver.o ../funzioniGeneriche.o ../funzioniSocket.o -o DNSserver
+
+
+funzioniGeneriche.o : ../funzioniGeneriche.c ../funzioniGeneriche.h
+	gcc -c ../funzioniGeneriche.c
+
+funzioniSocket.o : ../funzioniSocket.c ../funzioniSocket.h
+	gcc -c ../funzioniSocket.c
+
+funzioniServerReplica.o : ../funzioniServerReplica.c ../funzioniServerReplica.h
+	gcc -c ../funzioniServerReplica.c
+
+funzioniDNSserver : ../funzioniDNSserver.c ../funzioniDNSserver
+	gcc -c ../funzioniDNSserver.c
+
+
+serverReplica.o : serverReplica.c 
+	gcc -c serverReplica.c
+
+DNSserver.o : DNSserver.c 
+	gcc -c DNSserver.c

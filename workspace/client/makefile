@@ -1,27 +1,30 @@
-all : ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c clientNormale.c clientDiServizio.c
-#	gcc -o serverConFork serverConForkEselect.c function.c
-# Attenzione, non compilo il file che contiene il server con Fork e select!
-#	gcc -o serverReplica serverReplica.c funzioniGeneriche.c funzioniSocket.c funzioniServerReplica.c
-	gcc -o clientNormale clientNormale.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c 
-	gcc -o clientDiServizio clientDiServizio.c ../funzioniGeneriche.c ../funzioniSocket.c 
-#	gcc -o DNSserver DNSserver.c funzioni_dns.c funzioniGeneriche.c funzioniSocket.c 
-#	gcc -o clientDNS clientDNS.c ../funzioniGeneriche.c ../funzioniSocket.c 
-	
-#DNSserver : DNSserver.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c
-#	gcc -o DNSserver DNSserver.c funzioniGeneriche.c funzioniSocket.c funzioni_dns.c
-	
-#clientDNS : clientDNS.c ../funzioniGeneriche.c ../funzioniSocket.c 
-#	gcc -o clientDNS clientDNS.c ../funzioniGeneriche.c ../funzioniSocket.c 
-	
-#serverReplica : serverReplica.c funzioniGeneriche.c funzioniSocket.c funzioniServerReplica.c
-#	gcc -o serverReplica serverReplica.c funzioniGeneriche.c funzioniSocket.c funzioniServerReplica.c
-	
-#serverConFork : serverConForkEselect.c funzioniGeneriche.c funzioniSocket.c 
-#	gcc -o serverConFork serverConForkEselect.c funzioniGeneriche.c funzioniSocket.c 
+all : clientNormale.c clientDiServizio.c
 
-clientNormale : clientNormale.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c 
-	gcc -o clientNormale clientNormale.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c
+	gcc -o clientNormale clientNormale.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c 
+	gcc -o clientDiServizio clientDiServizio.c ../funzioniGeneriche.c ../funzioniSocket.c
+
+clientNormale : clientNormale.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o
+	gcc clientNormale.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o -o clientNormale
 	
-clientDiServizio : clientDiServizio.c ../funzioniGeneriche.c ../funzioniSocket.c 
-	gcc -o clientDiServizio clientDiServizio.c ../funzioniGeneriche.c ../funzioniSocket.c 
+clientDiServizio : clientDiServizio.o ../funzioniGeneriche.o ../funzioniSocket.o 
+	gcc -o clientDiServizio.o ../funzioniGeneriche.o ../funzioniSocket.o -o clientDiServizio 
+
+
+
+funzioniDNS.o : ../funzioniDNS.c ../funzioniDNS.h
+	gcc -c ../funzioniDNS.c
+
+funzioniGeneriche.o : ../funzioniGeneriche.c ../funzioniGeneriche.h
+	gcc -c ../funzioniGeneriche.c
+
+funzioniSocket.o : ../funzioniSocket.c ../funzioniSocket.h
+	gcc -c ../funzioniSocket.c
+
+
+clientNormale.o : clientNormale.c 
+	gcc -c clientNormale.c
+
+clientDiServizio.o : clientDiServizio.c 
+	gcc -c clientDiServizio.c
+
 
