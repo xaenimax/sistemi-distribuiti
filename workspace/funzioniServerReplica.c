@@ -36,55 +36,49 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
 
-int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercorso,struct pacchetto *pacchettoApplicativo,int *destinazione){
+int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercorso,struct pacchetto *pacchettoApplicativo,int *socketConnesso){
 	
-	printf("  %d [%s]Creaaazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
+	printf("  %d [%s]Creazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
 	unsigned long int dimensioneFile=0,numeroByteLetti=0;
 	int numeroDiPartiDaLeggere;
-	char buffer[500], stringaImmessa[100];
-	char percorsoOrigine[100], percorsoDestinazione[100];
-	FILE *fileDiScritturaMomentanea=fopen(percorsoDestinazione,"a");
-	FILE *fileOriginaleDaCopiare=fopen(percorsoOrigine,"rb");
+	char buffer[500], stringaImmessa[100], percorsoOrigine[100], percorsoDestinazione[100];
+	FILE *fileOriginaleDaCopiare, *fileDiScritturaMomentanea;
 	
 	strcpy(percorsoOrigine,"./fileCondivisi/");
 	strcpy(percorsoDestinazione, "fileCondivisi/");
-	printf("fa la strcat\n");
 	strcat(IDgenerato,".marina");
 	strcat(percorsoDestinazione,IDgenerato);
 	printf("%s \n",percorsoDestinazione);
 	strcat(percorsoOrigine,nomeFileDaSostituireConPercorso);
 	printf("%s \n",percorsoOrigine);
-			
-	//////////////////////
-	///////////////////////////////////
-	//////MA CHE BLOCCHI A FARE LO SCHERMO CHE TANTO LA PASSWORD LA SO :D :D :D 
-	////////////////////////////////////
-	//////////////////////////////
 	
+	printf("  %d: [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
+	fileDiScritturaMomentanea=fopen(percorsoDestinazione,"a");
 	
-	printf("  %d [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
 	// apro i file con relativi controlli di errore
 	if ((fileDiScritturaMomentanea<0)||(fileDiScritturaMomentanea==NULL)){
 		printf("  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo->tipoOperazione, percorsoDestinazione);
-		bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 		
 		strcpy(pacchettoApplicativo->tipoOperazione, "scrivi file");
 		strcpy(pacchettoApplicativo->messaggio, "File non trovato\n");
 						
-		sendPacchetto(destinazione, pacchettoApplicativo);
+		sendPacchetto(socketConnesso, pacchettoApplicativo);
 						
-		bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		receivePacchetto(destinazione, pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+		receivePacchetto(socketConnesso, pacchettoApplicativo, sizeof(struct pacchetto));
 		perror("Errore nella creazione del file temporaneo");
 		exit(-1);
 	}
+	
+	fileOriginaleDaCopiare = fopen(percorsoOrigine,"rb");		
 	
 	printf("Apro il secondo file da copiare\n");
 	
 	if(fileOriginaleDaCopiare<0){
 		printf("  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->nomeFile);
-		perror("");
+		perror();
 		exit(-1);
 	}
 	

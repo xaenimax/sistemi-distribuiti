@@ -104,7 +104,6 @@ main() {
 		
 		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
-			
 		//se il server ha trovato il file me lo comunica e comincio a scriverlo
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file, trovato") == 0) {
 			
