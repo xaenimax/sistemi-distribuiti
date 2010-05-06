@@ -56,6 +56,13 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 	strcat(percorsoOrigine,nomeFileDaSostituireConPercorso);
 	printf("%s \n",percorsoOrigine);
 			
+	//////////////////////
+	///////////////////////////////////
+	//////MA CHE BLOCCHI A FARE LO SCHERMO CHE TANTO LA PASSWORD LA SO :D :D :D 
+	////////////////////////////////////
+	//////////////////////////////
+	
+	
 	printf("  %d [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
 	// apro i file con relativi controlli di errore
 	if ((fileDiScritturaMomentanea<0)||(fileDiScritturaMomentanea==NULL)){
