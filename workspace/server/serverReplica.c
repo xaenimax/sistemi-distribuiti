@@ -15,15 +15,25 @@ void acceptFiglioDiServizio();
 void interrompi();
 
 
-int pid, pidServizio, i;
+int pid, pidServizio, i, ID_numerico_server;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
 const char directoryDeiFile[] = "fileCondivisi/";
 char fileDiCuiSiIntendeFareIlCommit[10][100];
 
-main() {
+main( int argc, char *argv[] ) {
+        
+        if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
+    {
+        printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
+	exit(1);
+    }
+    else 
+    { 
+	ID_numerico_server = atoi(argv[1]);
+	}
 
-	printf("%d: Avvio del server...\n", getpid());
+	printf("%d: Avvio del server numero (ID) %d \n", getpid(), ID_numerico_server);
 	
 	createSocketStream(&listenNormale);
 	createSocketStream(&listenDiServizio);
