@@ -23,14 +23,14 @@ char fileDiCuiSiIntendeFareIlCommit[10][100];
 
 main( int argc, char *argv[] ) {
         
-        if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
-    {
-        printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
+	if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
+  {
+	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
 	exit(1);
-    }
-    else 
-    { 
-	ID_numerico_server = atoi(argv[1]);
+  }
+  else 
+  { 
+		ID_numerico_server = atoi(argv[1]);
 	}
 
 	printf("%d: Avvio del server numero (ID) %d \n", getpid(), ID_numerico_server);
