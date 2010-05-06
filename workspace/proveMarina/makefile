@@ -1,12 +1,12 @@
-all : mutex.c
+all : memoriaCondivisa.c
 #	gcc -o serverConFork serverConForkEselect.c function.c
 # Attenzione, non compilo il file che contiene il server con Fork e select!
-	gcc -o mutex mutex.c -lpthread
+	gcc -o memoriaCondivisa memoriaCondivisa.c -lpthread
 	
-mutex : mutex.c
+memoriaCondivisa : memoriaCondivisa.c
 #	gcc -o serverConFork serverConForkEselect.c function.c
 # Attenzione, non compilo il file che contiene il server con Fork e select!
-	gcc -o mutex mutex.c -lpthread
+	gcc -o memoriaCondivisa memoriaCondivisa.c -lpthread
 utility : utility.o ../funzioniGeneriche.o ../funzioniSocket.o
 	gcc utility.o ../funzioniGeneriche.o ../funzioniSocket.o -o utility
 	cp fileorigine.txt filediriferimento.txt
