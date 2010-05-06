@@ -1,6 +1,6 @@
-#include "../general.h"
+#include "general.h"
 // #include "funzioniServerReplica.h"
-#include "../funzioniGeneriche.h"
+#include "funzioniGeneriche.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,31 +38,73 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 
 int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercorso,struct pacchetto *pacchettoApplicativo,int *destinazione){
 	
-	FILE 	*fileDiScritturaMomentanea=fopen(IDgenerato,"a");
-	FILE *fileOriginaleDaCopiare=fopen(nomeFileDaSostituireConPercorso,"rb");
+	printf("  %d [%s]Creaaazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
 	unsigned long int dimensioneFile=0,numeroByteLetti=0;
 	int numeroDiPartiDaLeggere;
-	
 	char buffer[500], stringaImmessa[100];
+	char percorsoOrigine[100], percorsoDestinazione[100];
+	FILE *fileDiScritturaMomentanea=fopen(percorsoDestinazione,"a");
+	FILE *fileOriginaleDaCopiare=fopen(percorsoOrigine,"rb");
 	
+	strcpy(percorsoOrigine,"./fileCondivisi/");
+	strcpy(percorsoDestinazione, "fileCondivisi/");
+	printf("fa la strcat\n");
+	strcat(IDgenerato,".marina");
+	strcat(percorsoDestinazione,IDgenerato);
+	printf("%s \n",percorsoDestinazione);
+	strcat(percorsoOrigine,nomeFileDaSostituireConPercorso);
+	printf("%s \n",percorsoOrigine);
 			
-	printf("Apro il primo file temporaneo\n");
+	printf("  %d [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
 	// apro i file con relativi controlli di errore
-	if (fileDiScritturaMomentanea<0){
+	if ((fileDiScritturaMomentanea<0)||(fileDiScritturaMomentanea==NULL)){
+		printf("  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo->tipoOperazione, percorsoDestinazione);
+		bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		
+		strcpy(pacchettoApplicativo->tipoOperazione, "scrivi file");
+		strcpy(pacchettoApplicativo->messaggio, "File non trovato\n");
+						
+		sendPacchetto(destinazione, pacchettoApplicativo);
+						
+		bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		receivePacchetto(destinazione, pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		perror("Errore nella creazione del file temporaneo");
 		exit(-1);
 	}
+	
 	printf("Apro il secondo file da copiare\n");
+	
 	if(fileOriginaleDaCopiare<0){
-		perror("Errore nell'apertura del file da copiare");
+		printf("  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->nomeFile);
+		perror("");
 		exit(-1);
 	}
+	
+	if(fileOriginaleDaCopiare==NULL){
+		printf("  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo->tipoOperazione, pacchettoApplicativo->nomeFile);
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		
+		strcpy(pacchettoApplicativo->tipoOperazione, "scrivi file");
+		strcpy(pacchettoApplicativo->messaggio, "File non trovato\n");
+						
+		sendPacchetto(destinazione, pacchettoApplicativo);
+						
+		bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		receivePacchetto(destinazione, pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	}
+					
+	//Se trovo il file lo spedisco al client.
+	else {
+		printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituireConPercorso);
+		}
+	
+
 	fseek(fileOriginaleDaCopiare,0L,SEEK_END);
 	dimensioneFile= ftell(fileOriginaleDaCopiare);
 	fseek(fileOriginaleDaCopiare,0L,SEEK_SET);
 	
-	printf("copia in corso\n");
+	printf("  %d [%s] copia in corso\n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
 // 	copia un file su quello temporaneo
 	numeroDiPartiDaLeggere=dimensioneFile/(sizeof(buffer));
@@ -78,16 +120,18 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 		fwrite( buffer, 1, numeroDiPartiDaLeggereAncora, fileDiScritturaMomentanea);
 	}
 	
-	printf("Copia completata\n");
+	printf("  %d [%s]Copia completata\n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
 // prende le cose scritte dall'utente e le aggiunge al file temporaneo
 	//svuoto il buffer di invio
-	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	strcpy(pacchettoApplicativo->idTransazione,percorsoDestinazione);
+	strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 	strcpy(pacchettoApplicativo->messaggio,"inserisci le modifiche, scrivi commit per effettuarle, abort per annullare\n");
 	
 	while((strcmp(pacchettoApplicativo->messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort\n")!=0))
 	{
-		strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+		
 		sendPacchetto(destinazione,pacchettoApplicativo);
 		receivePacchetto(destinazione, pacchettoApplicativo, sizeof(struct pacchetto));
 				
@@ -99,34 +143,41 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 		
 
 		
-		if(strcmp(stringaImmessa,"commit\n")==0)
+		if(strcmp(pacchettoApplicativo->messaggio,"commit\n")==0)
 		{
 // 		richiama il metodo con l'algoritmo di agrawala
 // dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
 		
 			if(remove(nomeFileDaSostituireConPercorso)<0)
 			{
-				perror("Errore di cancellazione del file originale da sostituire");
+				printf("  %d [%s]Errore di cancellazione del file originale da sostituire\n",getpid(),pacchettoApplicativo->tipoOperazione);
+				perror("");
 				exit(-1);
 			}
 		
 			if(rename(IDgenerato,nomeFileDaSostituireConPercorso)<0)
 			{
-				perror("Errore nella rinomina del file\n");
+				printf("  %d [%s]Errore nella rinomina del file\n",getpid(),pacchettoApplicativo->tipoOperazione);
+				perror("");
 				exit(-1);
 			}
-		printf("Operazione di scrittura terminata con successo\n");
+		printf("  %d [%s]Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		}
 		
-		if(strcmp(stringaImmessa,"abort\n")==0)
+		else if(strcmp(pacchettoApplicativo->messaggio,"abort\n")==0)
 		{
 			if(remove(IDgenerato)<0){
-				perror("Errore nella cancellazione del file momentaneo abortito in scrittura");
+				printf("  %d [%s]Errore nella cancellazione del file momentaneo abortito in scrittura",getpid(),pacchettoApplicativo->tipoOperazione);
+				perror("");
 				exit(-1);
 			}
-			printf("Operazione annullata\n");
+			printf("  %d [%s]Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		}
-		bzero(pacchettoApplicativo->messaggio,sizeof(pacchettoApplicativo->messaggio));
+		
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+		strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
+		strcpy(pacchettoApplicativo->messaggio,"inserisci le modifiche, scrivi commit per effettuarle, abort per annullare\n");
 	}
 	fclose(fileDiScritturaMomentanea);
 	fclose(fileOriginaleDaCopiare);
