@@ -78,21 +78,21 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 	
 	if(fileOriginaleDaCopiare<0){
 		printf("  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->nomeFile);
-		perror();
+		perror("");
 		exit(-1);
 	}
 	
 	if(fileOriginaleDaCopiare==NULL){
 		printf("  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo->tipoOperazione, pacchettoApplicativo->nomeFile);
-		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 		
 		strcpy(pacchettoApplicativo->tipoOperazione, "scrivi file");
 		strcpy(pacchettoApplicativo->messaggio, "File non trovato\n");
 						
-		sendPacchetto(destinazione, pacchettoApplicativo);
+		sendPacchetto(socketConnesso, pacchettoApplicativo);
 						
-		bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		receivePacchetto(destinazione, pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+		receivePacchetto(socketConnesso, pacchettoApplicativo, sizeof(struct pacchetto));
 	}
 					
 	//Se trovo il file lo spedisco al client.
@@ -125,7 +125,7 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 	
 // prende le cose scritte dall'utente e le aggiunge al file temporaneo
 	//svuoto il buffer di invio
-	bzero(pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 	strcpy(pacchettoApplicativo->idTransazione,percorsoDestinazione);
 	strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 	strcpy(pacchettoApplicativo->messaggio,"inserisci le modifiche, scrivi commit per effettuarle, abort per annullare\n");
@@ -133,8 +133,8 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 	while((strcmp(pacchettoApplicativo->messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort\n")!=0))
 	{
 		
-		sendPacchetto(destinazione,pacchettoApplicativo);
-		receivePacchetto(destinazione, pacchettoApplicativo, sizeof(struct pacchetto));
+		sendPacchetto(socketConnesso,pacchettoApplicativo);
+		receivePacchetto(socketConnesso, pacchettoApplicativo, sizeof(struct pacchetto));
 				
 		/*inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
 		printf("Stai scrivendo %s\n",stringaImmessa);
@@ -175,7 +175,7 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituireConPercor
 			printf("  %d [%s]Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		}
 		
-		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 		strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 		strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 		strcpy(pacchettoApplicativo->messaggio,"inserisci le modifiche, scrivi commit per effettuarle, abort per annullare\n");
