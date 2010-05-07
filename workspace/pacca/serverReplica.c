@@ -13,15 +13,20 @@ void mainDelFiglioDiServizio();
 void acceptFiglioNormale();
 void acceptFiglioDiServizio();
 void interrompi();
+void mainFiglioAgrawala();
 
 
-int pid, pidServizio, i, ID_numerico_server;
+int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala;;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
 const char directoryDeiFile[] = "fileCondivisi/";
 
 main( int argc, char *argv[] ) {
         
+	struct fileApertiDalServer *listaFileAperti;
+	
+	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
+	
 	if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
   {
 	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
@@ -58,11 +63,6 @@ main( int argc, char *argv[] ) {
 		//il padre crea un altro figlio per le richieste di servizio
 		pid = fork();
 		acceptFiglioDiServizio();
-		
-		//sono sempre il padre 
-		if(pid != 0)
-			printf("%d: porca troia", getpid());
-		pid = fork();
 		
 		printf("%d: Server avviato:\n", getpid());
 		
@@ -103,22 +103,27 @@ void acceptFiglioDiServizio() {
 		
 		printf(" %d: In attesa di una richiesta di servizio...\n", getpid());
 		
-		while(1) {
-			acceptSocket(&connessioneDiServizio, &listenDiServizio);
+		pidFiglioAgrawala = fork();
+		mainFiglioAgrawala();
+		//se sono il padre faccio le accept per le richieste di servizio
+		if(pidFiglioAgrawala != 0) {
+			while(1) {
+				acceptSocket(&connessioneDiServizio, &listenDiServizio);
 			
 					//se è stata accettata una connessione normale...
-			if(connessioneDiServizio != 0) {
-				printf(" %d: Creazione di un figlio di servizio in corso...\n", getpid());
+				if(connessioneDiServizio != 0) {
+					printf(" %d: Creazione di un figlio di servizio in corso...\n", getpid());
 				
-				pid = fork();
+					pid = fork();
 			
-		// 				printf("%d: Figlio creato\n", getpid());
+					//printf("%d: Figlio creato\n", getpid());
 				
-				mainDelFiglioDiServizio();
+					mainDelFiglioDiServizio();
 				
-				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
+					//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
-				closeSocket(&connessioneDiServizio);
+					closeSocket(&connessioneDiServizio);
+				}
 			}
 		}
 	}
@@ -323,6 +328,15 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 			
 			exit(0);
 		}
+}
+
+void mainFiglioAgrawala() {
+	if(pidFiglioAgrawala == 0) {
+		while(1) {
+			printf("   %d-%d: Controllo se devo avviare agravala\n", getpid(), getppid());
+			sleep(10);
+		}
+	}
 }
 
 void interrompi() {
