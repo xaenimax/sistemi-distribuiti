@@ -1,7 +1,7 @@
 #include "general.h"
 #include "funzioniGeneriche.h"
 
-//Serve ad inserire del testo da stdin. Salva il testo in buffer
+//Serve ad inserire del testo da stdin. Salva il testo in buffer NON prende \n
 void inserisciTesto(char *bufferDoveInserireIlTesto, int dimensioneDelBufferDiTesto) {
 	
 	fflush(stdout);

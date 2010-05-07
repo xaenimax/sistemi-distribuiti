@@ -18,8 +18,6 @@ main() {
 	char indirizzoIpDelServer[15];
 
 	riferimento_servreplica = (char*)contattaDNS();
-//     printf(" prova (direttamente dal client) %s \n", riferimento_servreplica);
-
     //separo indirizzo e porta (spostarlo in una funzione esterna!)
     char *p = strtok (riferimento_servreplica,":");
 
@@ -27,12 +25,8 @@ main() {
     				 p = strtok(NULL,"\n");
     				 if(p!=NULL) porta_servreplica = p;
 				    }
-    //prove! da rimnuovere
-// 	printf("\n prova indirizzo (direttamente dal client) %s \n", indirizzo_servreplica);
-// 	printf("\n prova porta (direttamente dal client) %s \n", porta_servreplica);
-	int porta_servreplicaINT = atoi(porta_servreplica);
-// 	printf("\n prova porta int (direttamente dal client) %d \n", porta_servreplicaINT);
 
+	int porta_servreplicaINT = atoi(porta_servreplica);
 
    //*****************
 
@@ -118,22 +112,29 @@ main() {
 		else if(strcmp(pacchettoApplicativo.tipoOperazione,"scrivi file, pronto")==0)
 		{
 			printf("ID transazione generato %s\n",pacchettoApplicativo.idTransazione);
-			while((strcmp(pacchettoApplicativo.messaggio,"commit\n")!=0)&&(strcmp(pacchettoApplicativo.messaggio,"abort\n")!=0))
+			while((strcmp(pacchettoApplicativo.messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo.messaggio,"abort")!=0))
 			{
-				printf("%s",pacchettoApplicativo.messaggio);
+				printf("messaggio server: %s\n",pacchettoApplicativo.messaggio);
 				//se c'è una richiesta di scrittura allora si manda l'id di transazione, dopodichè il server chiede con un while infinito di inserire le modifiche
 // 				una fatto commit da parte dell'utente si sottomettono le modifiche effettuate, altrimenti l'abort fa eliminare il file temporaneo
-				char stringaImmessa[100];
-				inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
+				char stringaImmessa[100],IDtransazione[10];
+				
+				
+				strcpy(IDtransazione,pacchettoApplicativo.idTransazione);
+				
 				bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
-				strcat(stringaImmessa,"\n");
-				strcat(stringaImmessa,pacchettoApplicativo.messaggio);
+				inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
+				strcpy(pacchettoApplicativo.messaggio,stringaImmessa);
+				printf("ho scritto %s\n",pacchettoApplicativo.messaggio);
+				strcpy(pacchettoApplicativo.idTransazione,IDtransazione);
+				strcpy(pacchettoApplicativo.tipoOperazione,"scrivi file");
 				
 				sendPacchetto(&socketCL, &pacchettoApplicativo);
 				
 				bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				
 				receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+				
 				
 			}
 		}

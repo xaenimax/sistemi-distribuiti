@@ -231,6 +231,7 @@ void mainDelFiglio() {
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
 					richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,&connessioneNormale);
+					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				}
 				
 				else {
