@@ -21,3 +21,7 @@ struct pacchetto {
 	char nomeFile[350];
 	int timeStamp;	
 };
+
+struct fileApertiDalServer {
+	char nomeFile[100];
+};
