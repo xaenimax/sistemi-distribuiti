@@ -111,13 +111,14 @@ main() {
 		// ****************************Marina	
 		else if(strcmp(pacchettoApplicativo.tipoOperazione,"scrivi file, pronto")==0)
 		{
-			printf("ID transazione generato %s\n",pacchettoApplicativo.idTransazione);
+			printf("ID transazione generato.\n");
+			printf("- %s\n- %s\n- %s\n- %d\n- %s\n- %d\n", pacchettoApplicativo.idTransazione, pacchettoApplicativo.messaggio, pacchettoApplicativo.nomeFile, pacchettoApplicativo.numeroMessaggio, pacchettoApplicativo.timeStamp, pacchettoApplicativo.tipoOperazione);
 			while((strcmp(pacchettoApplicativo.messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo.messaggio,"abort")!=0))
 			{
-				printf("messaggio server: %s\n",pacchettoApplicativo.messaggio);
+				printf("messaggio server: %s \n",pacchettoApplicativo.messaggio);
 				//se c'è una richiesta di scrittura allora si manda l'id di transazione, dopodichè il server chiede con un while infinito di inserire le modifiche
 // 				una fatto commit da parte dell'utente si sottomettono le modifiche effettuate, altrimenti l'abort fa eliminare il file temporaneo
-				char stringaImmessa[100],IDtransazione[10];
+				char stringaImmessa[600],IDtransazione[10];
 				
 				
 				strcpy(IDtransazione,pacchettoApplicativo.idTransazione);
@@ -127,7 +128,10 @@ main() {
 				strcpy(pacchettoApplicativo.messaggio,stringaImmessa);
 				printf("ho scritto %s\n",pacchettoApplicativo.messaggio);
 				strcpy(pacchettoApplicativo.idTransazione,IDtransazione);
+				printf("Metto ID %s\n",pacchettoApplicativo.idTransazione);
 				strcpy(pacchettoApplicativo.tipoOperazione,"scrivi file");
+				
+				printf("Sto inviando %s\n",pacchettoApplicativo.messaggio);
 				
 				sendPacchetto(&socketCL, &pacchettoApplicativo);
 				

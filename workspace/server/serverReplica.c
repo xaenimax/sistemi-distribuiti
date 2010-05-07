@@ -41,6 +41,10 @@ main( int argc, char *argv[] ) {
 	inizializza_memset(&indirizzoNormale, SERV_PORT);
 	inizializza_memset(&indirizzoDiServizio, SERVICE_PORT);
 	
+	int reuse=1;
+	setsockopt(listenNormale,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(int));
+	setsockopt(listenDiServizio,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(int));
+	
 	bindSocket(&listenNormale, &indirizzoNormale);
 	bindSocket(&listenDiServizio, &indirizzoDiServizio);
 	

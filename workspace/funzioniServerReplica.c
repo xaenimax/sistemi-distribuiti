@@ -49,6 +49,7 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 	strcpy(percorsoDestinazione, "./fileCondivisi/");
 
 	strcat(percorsoDestinazione,IDgenerato);
+	printf("ID ATTUALE : %s  lunghezza %d\n",IDgenerato,strlen(IDgenerato));
 	strcat(percorsoDestinazione,".marina");
 	printf("%s \n",percorsoDestinazione);
 	strcat(percorsoOrigine,nomeFileDaSostituire);
@@ -124,18 +125,20 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 // prende le cose scritte dall'utente e le aggiunge al file temporaneo
 	//svuoto il buffer di invio
 	bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-	strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+	printf("ID da inserire puttana eva in pacchetto %s\n",IDgenerato);
+	strncpy(pacchettoApplicativo->idTransazione,IDgenerato,10);
+	printf("id del pacchetto %s\n", pacchettoApplicativo->idTransazione);
 	strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
-	strcpy(pacchettoApplicativo->messaggio,"inserisci le modifiche, scrivi commit per effettuarle, abort per annullare\n");
+	strcpy(pacchettoApplicativo->messaggio,"inserisci");
 	
 	while((strcmp(pacchettoApplicativo->messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort")!=0))
 	{
-		printf("  %d [%s] Invio messaggio al client\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		printf("  %d [%s] Invio messaggio al client\n",getpid(),pacchettoApplicativo->idTransazione);
 		
 		sendPacchetto(socketConnesso,pacchettoApplicativo);
 		bzero(pacchettoApplicativo,sizeof(struct pacchetto));
 		printf("  %d [%s] In attesa di ricezione dal client\n",getpid(),pacchettoApplicativo->tipoOperazione);
-		receivePacchetto(socketConnesso, pacchettoApplicativo, sizeof(struct pacchetto));
+		receivePacchetto(socketConnesso, pacchettoApplicativo,sizeof(struct pacchetto));
 		printf("  %d [%s] Messaggio ricevuto: %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->messaggio);
 
 		if(strcmp(pacchettoApplicativo->messaggio,"commit")==0)
