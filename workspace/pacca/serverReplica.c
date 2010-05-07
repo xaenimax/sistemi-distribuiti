@@ -16,7 +16,7 @@ void interrompi();
 void mainFiglioAgrawala();
 
 
-int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala;;
+int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
 const char directoryDeiFile[] = "fileCondivisi/";
@@ -26,6 +26,8 @@ main( int argc, char *argv[] ) {
 	struct fileApertiDalServer *listaFileAperti;
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
+	
+	
 	
 	if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
   {
