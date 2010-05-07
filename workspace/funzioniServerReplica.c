@@ -126,10 +126,8 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 	//svuoto il buffer di invio
 	bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 	printf("ID da inserire puttana eva in pacchetto %s\n",IDgenerato);
-	strncpy(pacchettoApplicativo->idTransazione,IDgenerato,10);
-	printf("id del pacchetto %s\n", pacchettoApplicativo->idTransazione);
+	strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 	strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
-	strcpy(pacchettoApplicativo->messaggio,"inserisci");
 	
 	while((strcmp(pacchettoApplicativo->messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort")!=0))
 	{

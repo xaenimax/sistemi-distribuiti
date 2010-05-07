@@ -10,12 +10,13 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/wait.h>
-
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include <sys/dir.h>
 
 struct pacchetto {
 	char tipoOperazione[200];
-	char idTransazione[10];
+	char idTransazione[11];
 	unsigned char messaggio[600];
 	int numeroMessaggio;
 	char nomeFile[350];

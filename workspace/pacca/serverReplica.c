@@ -7,6 +7,7 @@
 #define BACKLOG       10
 #define MAXLINE     1024
 #include "../funzioniGeneriche.h"
+#include "serverReplica.h"
 
 void mainDelFiglio();
 void mainDelFiglioDiServizio();
@@ -15,19 +16,28 @@ void acceptFiglioDiServizio();
 void interrompi();
 void mainFiglioAgrawala();
 
-
-int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala;
-int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
-struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
-const char directoryDeiFile[] = "fileCondivisi/";
-
 main( int argc, char *argv[] ) {
         
 	struct fileApertiDalServer *listaFileAperti;
+	int idSegmentoMemCond;
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
 	
+	idSegmentoMemCond = shmget(CHIAVEMEMCONDIVISA, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
+	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0); //scrivo il valore corrente della mem condivisa. Da finire.
+	bzero(listaFileAperti, sizeof(struct fileApertiDalServer));
 	
+	for(i = 0; i < 10; i++){
+		strcpy(listaFileAperti[i].nomeFile, "ciao");
+		printf("a: %d:", strlen(listaFileAperti[i].nomeFile));
+// 		bzero((listaFileAperti[1]), sizeof(struct fileApertiDalServer));
+	}
+	
+
+	printf("\n");
+	for(i = 0; i < 10; i++){
+		printf("a: %d:", strlen(listaFileAperti[i].nomeFile));
+	}
 	
 	if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
   {
@@ -46,6 +56,10 @@ main( int argc, char *argv[] ) {
 
 	inizializza_memset(&indirizzoNormale, SERV_PORT);
 	inizializza_memset(&indirizzoDiServizio, SERVICE_PORT);
+	
+	int reuse = 1;
+	setsockopt(listenNormale, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+	setsockopt(listenDiServizio, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
 	
 	bindSocket(&listenNormale, &indirizzoNormale);
 	bindSocket(&listenDiServizio, &indirizzoDiServizio);
