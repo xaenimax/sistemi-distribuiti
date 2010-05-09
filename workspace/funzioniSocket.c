@@ -119,3 +119,9 @@ void inetPton(struct sockaddr_in *indirizzo, char *indirizzoInStringa) {
 		exit(-1);
 	}
 }
+
+void assegnaIPaServaddr(char indirizzoIP[16], int porta, struct sockaddr_in *sockAddrSuCuiAssegnareIp) {
+	sockAddrSuCuiAssegnareIp->sin_family = AF_INET;
+	sockAddrSuCuiAssegnareIp->sin_port = htons(porta);
+	inetPton(sockAddrSuCuiAssegnareIp, indirizzoIP);
+}

@@ -130,3 +130,17 @@ void riceviFile(int *socketConnesso, char *nomeFileDaScrivereConPercorso, struct
 	
 	fclose(fileDaScrivere);
 }
+
+void svuotaStrutturaListaFile(struct fileApertiDalServer *listaFile) {
+	int i;
+	for(i = 0; i < 10; i++)
+		bzero((listaFile+i), sizeof(struct fileApertiDalServer));
+}
+
+void stampaIpEporta(struct sockaddr_in *indirizzoIP, int slashN) {
+	if(slashN == 0)
+		printf("%s:%d", inet_ntoa(indirizzoIP->sin_addr), ntohs(indirizzoIP->sin_port));
+	else
+		printf("\n");
+
+}
