@@ -19,25 +19,14 @@ void mainFiglioAgrawala();
 main( int argc, char *argv[] ) {
         
 	struct fileApertiDalServer *listaFileAperti;
-	int idSegmentoMemCond;
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
 	
 	idSegmentoMemCond = shmget(CHIAVEMEMCONDIVISA, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
-	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0); //scrivo il valore corrente della mem condivisa. Da finire.
-	bzero(listaFileAperti, sizeof(struct fileApertiDalServer));
-	
-	for(i = 0; i < 10; i++){
-		strcpy(listaFileAperti[i].nomeFile, "ciao");
-		printf("a: %d:", strlen(listaFileAperti[i].nomeFile));
-// 		bzero((listaFileAperti[1]), sizeof(struct fileApertiDalServer));
-	}
-	
+	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
-	printf("\n");
-	for(i = 0; i < 10; i++){
-		printf("a: %d:", strlen(listaFileAperti[i].nomeFile));
-	}
+	svuotaStrutturaListaFile(listaFileAperti);
+	strcpy(listaFileAperti[2].nomeFile, "marina.txt");
 	
 	if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
   {
@@ -348,9 +337,60 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 
 void mainFiglioAgrawala() {
 	if(pidFiglioAgrawala == 0) {
+		
+		struct fileApertiDalServer *listaFile;
+		listaFile = malloc(15*sizeof(struct fileApertiDalServer));
+		int i, socketPerRichiestaConferme[4], confermeRicevute = 0;
+		struct sockaddr_in indirizzoServer[4];
+		struct pacchetto pacchettoApplicativo;
+		
+		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+		
 		while(1) {
-			printf("   %d-%d: Controllo se devo avviare agravala\n", getpid(), getppid());
-			sleep(10);
+			
+			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
+			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
+				if(i == 9) 
+					i = -1; // i è -1 perché appena si rifà il ciclo viene incrementato da i++
+			}
+			
+			printf("   %d: Trovata richiesta di commit. Chiedo agli altri server la conferma per poter procedere..\n", getpid());
+			
+			bzero(&indirizzoServer[0], sizeof(struct sockaddr_in));
+			bzero(&indirizzoServer[1], sizeof(struct sockaddr_in));
+			bzero(&indirizzoServer[2], sizeof(struct sockaddr_in));
+			bzero(&indirizzoServer[3], sizeof(struct sockaddr_in));
+
+			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[0]);
+			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[1]);
+			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[2]);
+			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[3]);			
+			
+			int iDelWhile = 0;
+			printf("IP e Porta: ");
+			stampaIpEporta(&indirizzoServer[0], 1);
+			while(confermeRicevute <= NUMERODISERVERREPLICA) {
+
+				createSocketStream(&socketPerRichiestaConferme[1]);
+				connectSocket(&socketPerRichiestaConferme[1], &indirizzoServer[iDelWhile]);
+				
+				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo.nomeFile, listaFile[i].nomeFile);
+				strcpy(pacchettoApplicativo.tipoOperazione, "chiedo di fare commit");
+				
+				printf("   %d: Invio richiesta di commit al server",getpid());
+				sendPacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo);
+				
+				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+				receivePacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo, sizeof(struct pacchetto));
+				
+				printf("   %d: [debug]: Ricevuto: %s - %s",getpid(), pacchettoApplicativo.messaggio, pacchettoApplicativo.tipoOperazione);
+				
+				//se il server mi da la conferma che posso fare il commit mi segno la sua conferma
+				if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
+					confermeRicevute++;
+				}
+			}
 		}
 	}
 }
