@@ -1,12 +1,3 @@
-#include "../general.h"
-// #include "funzioniServerReplica.h"
-// #include "../funzioniGeneriche.h"
-
-#define SERV_PORT   5193
-#define SERVICE_PORT	6000
-#define BACKLOG       10
-#define MAXLINE     1024
-#include "../funzioniGeneriche.h"
 #include "serverReplica.h"
 
 void mainDelFiglio();
@@ -45,13 +36,20 @@ main( int argc, char *argv[] ) {
 	else
 		portaDiServizio = atoi(argv[2]);
 	
+		if(argc < 4) {
+		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d\n", SERVICE_PORT);
+		portaRichiesteNormali = NORMAL_PORT;
+	}
+	else
+		portaRichiesteNormali = atoi(argv[3]);
+	
 	
 	printf("%d: Avvio del server numero (ID) %d \n", getpid(), ID_numerico_server);
 	
 	createSocketStream(&listenNormale);
 	createSocketStream(&listenDiServizio);
 
-	inizializza_memset(&indirizzoNormale, SERV_PORT);
+	inizializza_memset(&indirizzoNormale, portaRichiesteNormali);
 	inizializza_memset(&indirizzoDiServizio, portaDiServizio);
 	
 	int reuse = 1;
