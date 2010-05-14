@@ -137,10 +137,6 @@ void svuotaStrutturaListaFile(struct fileApertiDalServer *listaFile) {
 		bzero((listaFile+i), sizeof(struct fileApertiDalServer));
 }
 
-void stampaIpEporta(struct sockaddr_in *indirizzoIP, int slashN) {
-	if(slashN == 0)
+void stampaIpEporta(struct sockaddr_in *indirizzoIP) {
 		printf("%s:%d", inet_ntoa(indirizzoIP->sin_addr), ntohs(indirizzoIP->sin_port));
-	else
-		printf("\n");
-
 }

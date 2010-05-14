@@ -28,7 +28,7 @@ main( int argc, char *argv[] ) {
 	svuotaStrutturaListaFile(listaFileAperti);
 	strcpy(listaFileAperti[2].nomeFile, "marina.txt");
 	
-	if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
+	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
   {
 	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
 	exit(1);
@@ -38,13 +38,21 @@ main( int argc, char *argv[] ) {
 		ID_numerico_server = atoi(argv[1]);
 	}
 
+	if(argc < 3) {
+		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d\n", SERVICE_PORT);
+		portaDiServizio = SERVICE_PORT;
+	}
+	else
+		portaDiServizio = atoi(argv[2]);
+	
+	
 	printf("%d: Avvio del server numero (ID) %d \n", getpid(), ID_numerico_server);
 	
 	createSocketStream(&listenNormale);
 	createSocketStream(&listenDiServizio);
 
 	inizializza_memset(&indirizzoNormale, SERV_PORT);
-	inizializza_memset(&indirizzoDiServizio, SERVICE_PORT);
+	inizializza_memset(&indirizzoDiServizio, portaDiServizio);
 	
 	int reuse = 1;
 	setsockopt(listenNormale, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
@@ -149,7 +157,6 @@ void mainDelFiglio() {
 			int lunghezzaAddr = sizeof(ricevutoSuAddr);
 			getpeername(connessioneNormale, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
-				
 			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 			
 			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -361,14 +368,15 @@ void mainFiglioAgrawala() {
 			bzero(&indirizzoServer[2], sizeof(struct sockaddr_in));
 			bzero(&indirizzoServer[3], sizeof(struct sockaddr_in));
 
-			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[0]);
-			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[1]);
-			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[2]);
-			assegnaIPaServaddr("127.0.0.1", "6000", &indirizzoServer[3]);			
+			assegnaIPaServaddr("127.0.0.1", 5001, &indirizzoServer[0]);
+			assegnaIPaServaddr("127.0.0.1", 5002, &indirizzoServer[1]);
+			assegnaIPaServaddr("127.0.0.1", 5003, &indirizzoServer[2]);
+			assegnaIPaServaddr("127.0.0.1", 5004, &indirizzoServer[3]);			
 			
 			int iDelWhile = 0;
 			printf("IP e Porta: ");
-			stampaIpEporta(&indirizzoServer[0], 1);
+			stampaIpEporta(&indirizzoServer[1]);
+			printf("\n");
 			while(confermeRicevute <= NUMERODISERVERREPLICA) {
 
 				createSocketStream(&socketPerRichiestaConferme[1]);
@@ -390,6 +398,10 @@ void mainFiglioAgrawala() {
 				if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
 					confermeRicevute++;
 				}
+				
+				closeSocket(&socketPerRichiestaConferme[1]);
+				iDelWhile++;
+				
 			}
 		}
 	}
