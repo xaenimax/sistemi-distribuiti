@@ -12,8 +12,11 @@ main( int argc, char *argv[] ) {
 	struct fileApertiDalServer *listaFileAperti;
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
+	srand(time(NULL));
+	chiaveMemCondivisa = 48 + (rand()/(int)(((unsigned)RAND_MAX + 1) / 74));
 	
-	idSegmentoMemCond = shmget(CHIAVEMEMCONDIVISA, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
+	
+	idSegmentoMemCond = shmget(chiaveMemCondivisa, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
 	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
 	svuotaStrutturaListaFile(listaFileAperti);
@@ -29,14 +32,14 @@ main( int argc, char *argv[] ) {
 	}
 
 	if(argc < 3) {
-		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d\n", SERVICE_PORT);
+		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
 		portaDiServizio = SERVICE_PORT;
 	}
 	else
 		portaDiServizio = atoi(argv[2]);
 	
 		if(argc < 4) {
-		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d\n", SERVICE_PORT);
+		printf("Porta normale non specificata. Verra' usata la porta %d.\n", SERVICE_PORT);
 		portaRichiesteNormali = NORMAL_PORT;
 	}
 	else
@@ -251,7 +254,8 @@ void mainDelFiglio() {
 					richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,&connessioneNormale);
 				}
 				
-				else if(strcmp(pacchettoRicevuto.tipoOperazione, "prova agrawala") == 0) {
+				//sto tipo operazione sarà commit.
+				else if(strcmp(pacchettoApplicativo.tipoOperazione, "prova agrawala") == 0) {
 					struct fileApertiDalServer *listaFile;
 					listaFile = malloc(15*sizeof(struct fileApertiDalServer));
 					listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
@@ -259,17 +263,19 @@ void mainDelFiglio() {
 					printf("  %d:[%s] Provo a fare agrawala! File per provare: %s\n", getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.nomeFile);
 					int i;
 					//cerco nell'array dei file, la prima posizione vuota e vado ad inserire il mio file
-					for(i = 0; i < 10 && strcmp(listaFile[i], "") == 0; i++) {
-						printf("  %d:[%s, DEBUG] Cerco una posizione vuota dove inserire il mio file.\n");
+					for(i = 0; i < 10 && strlen(listaFile[i].nomeFile) != 0; i++) {
+						printf("  %d:[%s, DEBUG] Cerco una posizione vuota dove inserire il mio file.\n", getpid(), pacchettoApplicativo.tipoOperazione);
+						if(i == 9)
+							i = -1;
 					}
 					
-					printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoRicevuto.tipoOperazione i);
-					strcpy(listaFile[i], pacchettoApplicativo.nomeFile);
+					printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoApplicativo.tipoOperazione, i);
+					strcpy(listaFile[i].nomeFile, pacchettoApplicativo.nomeFile);
 					
 					
 					bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 					strcpy(pacchettoApplicativo.tipoOperazione, "prova agrewala");
-					strcpy(pacchettoDaInviare.messaggio, "Ok, sto provando agrawala");
+					strcpy(pacchettoApplicativo.messaggio, "Ok, sto provando agrawala");
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
@@ -330,6 +336,32 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
 				}
 				
+				else if(strcmp(pacchettoRicevuto.tipoOperazione, "chiedo di fare commit") == 0) {
+						struct fileApertiDalServer *listaFile;
+						listaFile = malloc(15*sizeof(struct fileApertiDalServer));
+						
+						listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+					
+						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevuto.timeStamp);
+						
+						int i;
+						
+						//controllo se sto usando il file
+						for(i = 0; i < 10; i++) {
+							//se sto usando il file controllo se io ho più priorità dell'altro aspetto fino a che non finisco di usarlo
+							while(strcmp(listaFile[i].nomeFile, pacchettoRicevuto.nomeFile) == 0 && ID_numerico_server < pacchettoRicevuto.timeStamp) {
+								printf("  %d: Sto usando il file \'%s\', il server %d dovrà aspettare\n", getpid(), listaFile[i].nomeFile, pacchettoRicevuto.timeStamp);
+								sleep(10);
+							}
+						}
+						
+						bzero(&pacchettoDaInviare, sizeof(struct pacchetto));
+						strcpy(pacchettoDaInviare.tipoOperazione, "conferma per il commit");
+						strcpy(pacchettoDaInviare.messaggio, "ok");
+						
+						sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);					
+				}
+				
 				//richiesta di uscita
 				else if (strcmp(pacchettoRicevuto.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
@@ -379,52 +411,59 @@ void mainFiglioAgrawala() {
 			
 			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
 			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
-				if(i == 9) 
+				if(i == 9) {
+					sleep(1); //Controllo ogni secondo se qualcuno vuole fare il commit. Evita che la cpu vada al 100%
 					i = -1; // i è -1 perché appena si rifà il ciclo viene incrementato da i++
+				}
 			}
 			
-			printf("   %d: Trovata richiesta di commit. Chiedo agli altri server la conferma per poter procedere..\n", getpid());
+			printf("   %d: Trovata richiesta di commit. File: %s, i: %d\n", getpid(), listaFile[i].nomeFile, i);
+			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
 			
 			bzero(&indirizzoServer[0], sizeof(struct sockaddr_in));
 			bzero(&indirizzoServer[1], sizeof(struct sockaddr_in));
-			bzero(&indirizzoServer[2], sizeof(struct sockaddr_in));
-			bzero(&indirizzoServer[3], sizeof(struct sockaddr_in));
+// 			bzero(&indirizzoServer[2], sizeof(struct sockaddr_in));
+// 			bzero(&indirizzoServer[3], sizeof(struct sockaddr_in));
 
+			//Questi ip dovranno essere presi dal DNS
 			assegnaIPaServaddr("127.0.0.1", 5001, &indirizzoServer[0]);
 			assegnaIPaServaddr("127.0.0.1", 5002, &indirizzoServer[1]);
-			assegnaIPaServaddr("127.0.0.1", 5003, &indirizzoServer[2]);
-			assegnaIPaServaddr("127.0.0.1", 5004, &indirizzoServer[3]);			
+// 			assegnaIPaServaddr("127.0.0.1", 5003, &indirizzoServer[2]);
 			
 			int iDelWhile = 0;
-			printf("IP e Porta: ");
-			stampaIpEporta(&indirizzoServer[1]);
-			printf("\n");
-			while(confermeRicevute <= NUMERODISERVERREPLICA) {
+
+			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
 				createSocketStream(&socketPerRichiestaConferme[1]);
+				printf("Sto per connettermi all'ip: ");
+				stampaIpEporta(&indirizzoServer[iDelWhile]);
+				printf("\n");
 				connectSocket(&socketPerRichiestaConferme[1], &indirizzoServer[iDelWhile]);
 				
 				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 				strcpy(pacchettoApplicativo.nomeFile, listaFile[i].nomeFile);
 				strcpy(pacchettoApplicativo.tipoOperazione, "chiedo di fare commit");
+				pacchettoApplicativo.timeStamp = ID_numerico_server;
 				
-				printf("   %d: Invio richiesta di commit al server",getpid());
+				printf("   %d: Invio richiesta di commit al server %d\n",getpid(), iDelWhile);
 				sendPacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo);
 				
 				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-				receivePacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo, sizeof(struct pacchetto));
+				receivePacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo, sizeof(struct pacchetto));
 				
-				printf("   %d: [debug]: Ricevuto: %s - %s",getpid(), pacchettoApplicativo.messaggio, pacchettoApplicativo.tipoOperazione);
+				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 				
 				//se il server mi da la conferma che posso fare il commit mi segno la sua conferma
 				if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
+					printf("   %d:[%s] Ricevuta conferma dal server %d\n", getpid(), pacchettoApplicativo.tipoOperazione, iDelWhile);
 					confermeRicevute++;
 				}
 				
 				closeSocket(&socketPerRichiestaConferme[1]);
 				iDelWhile++;
-				
 			}
+			
+			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme!\n", getpid());
 		}
 	}
 }

@@ -65,6 +65,10 @@ main() {
 			strcpy(pacchettoApplicativo.nomeFile, stringaInseritaDallutente);
 		}
 		
+		if(strncmp("prova agrawala", stringaInseritaDallutente, 14) == 0) {
+			strcpy(pacchettoApplicativo.nomeFile, "marina.txt");
+			printf("Mandato un file a cazzo :)\n");
+		}
 // 		commentata perchè serve a copiare un file dal client al server e non ci serve ma potrebbe servire
 // 		else if(strncmp("copia file", stringaInseritaDallutente, 11) == 0) {
 // 		
@@ -112,7 +116,7 @@ main() {
 		else if(strcmp(pacchettoApplicativo.tipoOperazione,"scrivi file, pronto")==0)
 		{
 			printf("ID transazione generato.\n");
-			printf("- %s\n- %s\n- %s\n- %d\n- %s\n- %d\n", pacchettoApplicativo.idTransazione, pacchettoApplicativo.messaggio, pacchettoApplicativo.nomeFile, pacchettoApplicativo.numeroMessaggio, pacchettoApplicativo.timeStamp, pacchettoApplicativo.tipoOperazione);
+
 			while((strcmp(pacchettoApplicativo.messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo.messaggio,"abort")!=0))
 			{
 				printf("messaggio server: %s \n",pacchettoApplicativo.messaggio);

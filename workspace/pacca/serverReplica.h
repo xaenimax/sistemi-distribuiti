@@ -1,5 +1,4 @@
-#define CHIAVEMEMCONDIVISA	23
-#define NUMERODISERVERREPLICA	4
+#define NUMERODISERVERREPLICA	3
 #include "../general.h"
 // #include "funzioniServerReplica.h"
 // #include "../funzioniGeneriche.h"
@@ -11,7 +10,7 @@
 #define MAXLINE     1024
 
 
-int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala, portaDiServizio, portaRichiesteNormali;
+int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala, portaDiServizio, portaRichiesteNormali, chiaveMemCondivisa;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
 const char directoryDeiFile[] = "fileCondivisi/";
