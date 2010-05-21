@@ -14,6 +14,14 @@ char** inizializza_lista() {
 		return lista_ind;
 }
 
+inizializza_lista_pacca(char** listaDaInizializzare) {
+	int i;
+	for(i = 0; i < MAX_QTY; i++)
+		listaDaInizializzare[i] = malloc(MAX_STRING_LENGTH);
+}
+
+
+
 //----------------prende gli indirizzi da file e li memorizza nel vettore-------------------//
 void prendi_indirizzi(char** lista_indirizzi) {
 

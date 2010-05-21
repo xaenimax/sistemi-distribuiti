@@ -404,7 +404,7 @@ void mainFiglioAgrawala() {
 		
 		struct fileApertiDalServer *listaFile;
 		listaFile = malloc(15*sizeof(struct fileApertiDalServer));
-		int i, socketPerRichiestaConferme[4], confermeRicevute = 0;
+		int i, socketPerRichiestaConferme, confermeRicevute = 0;
 		struct sockaddr_in indirizzoServer[4];
 		struct pacchetto pacchettoApplicativo;
 		
@@ -441,7 +441,7 @@ void mainFiglioAgrawala() {
 				printf("   %d: Sto per connettermi all'ip: ", getpid());
 				stampaIpEporta(&indirizzoServer[iDelWhile]);
 				printf("\n");
-				connectSocket(&socketPerRichiestaConferme[1], &indirizzoServer[iDelWhile]);
+				connectSocket(&socketPerRichiestaConferme, &indirizzoServer[iDelWhile]);
 				
 				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 				strcpy(pacchettoApplicativo.nomeFile, listaFile[i].nomeFile);
@@ -449,10 +449,10 @@ void mainFiglioAgrawala() {
 				pacchettoApplicativo.timeStamp = ID_numerico_server;
 				
 				printf("   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
-				sendPacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo);
+				sendPacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo);
 				
 				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-				receivePacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo, sizeof(struct pacchetto));
+				receivePacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo, sizeof(struct pacchetto));
 				
 // 				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 				
@@ -462,11 +462,11 @@ void mainFiglioAgrawala() {
 					confermeRicevute++;
 				}
 				
-				closeSocket(&socketPerRichiestaConferme[1]);
+				closeSocket(&socketPerRichiestaConferme);
 				iDelWhile++;
 			}
 			
-			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme!\n", getpid());
+			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme! //Inserire qui di seguito le operazioni da fare per il commit\n", getpid());
 			strcpy(listaFile[i].nomeFile, "");
 		}
 	}
