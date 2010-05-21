@@ -46,7 +46,7 @@ main( int argc, char *argv[] ) {
 		portaRichiesteNormali = atoi(argv[3]);
 	
 	
-	printf("%d: Avvio del server numero (ID) %d \n", getpid(), ID_numerico_server);
+	printf("%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
 	
 	createSocketStream(&listenNormale);
 	createSocketStream(&listenDiServizio);
@@ -359,7 +359,10 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						strcpy(pacchettoDaInviare.tipoOperazione, "conferma per il commit");
 						strcpy(pacchettoDaInviare.messaggio, "ok");
 						
-						sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);					
+						printf("  %d: Invio la conferma al server %d\n", getpid(), pacchettoRicevuto.timeStamp);
+						sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);	
+						
+						dimensioneDatiRicevuti = 0;
 				}
 				
 				//richiesta di uscita
@@ -435,7 +438,7 @@ void mainFiglioAgrawala() {
 			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
 				createSocketStream(&socketPerRichiestaConferme[1]);
-				printf("Sto per connettermi all'ip: ");
+				printf("   %d: Sto per connettermi all'ip: ", getpid());
 				stampaIpEporta(&indirizzoServer[iDelWhile]);
 				printf("\n");
 				connectSocket(&socketPerRichiestaConferme[1], &indirizzoServer[iDelWhile]);
@@ -445,13 +448,13 @@ void mainFiglioAgrawala() {
 				strcpy(pacchettoApplicativo.tipoOperazione, "chiedo di fare commit");
 				pacchettoApplicativo.timeStamp = ID_numerico_server;
 				
-				printf("   %d: Invio richiesta di commit al server %d\n",getpid(), iDelWhile);
+				printf("   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
 				sendPacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo);
 				
 				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 				receivePacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo, sizeof(struct pacchetto));
 				
-				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
+// 				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 				
 				//se il server mi da la conferma che posso fare il commit mi segno la sua conferma
 				if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
@@ -464,6 +467,7 @@ void mainFiglioAgrawala() {
 			}
 			
 			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme!\n", getpid());
+			strcpy(listaFile[i].nomeFile, "");
 		}
 	}
 }
