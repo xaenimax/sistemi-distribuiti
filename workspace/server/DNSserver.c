@@ -49,9 +49,7 @@ main() {
 	
 	listenSocket(&listensdDiServizio, BACKLOG);
 	
-
-
-	lista_server = (char**)inizializza_lista();   //allocazione memoria per gli indirizzi
+	inizializza_lista_pacca(lista_server);
 
 	prendi_indirizzi(lista_server);    //prelievo e memorizzazione indirizzi da file LISTA_SERVER
 
