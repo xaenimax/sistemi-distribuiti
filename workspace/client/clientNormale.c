@@ -112,13 +112,13 @@ main() {
 		else if(strcmp(pacchettoApplicativo.tipoOperazione,"scrivi file, pronto")==0)
 		{
 			printf("ID transazione generato.\n");
-			printf("- %s\n- %s\n- %s\n- %d\n- %s\n- %d\n", pacchettoApplicativo.idTransazione, pacchettoApplicativo.messaggio, pacchettoApplicativo.nomeFile, pacchettoApplicativo.numeroMessaggio, pacchettoApplicativo.timeStamp, pacchettoApplicativo.tipoOperazione);
-			while((strcmp(pacchettoApplicativo.messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo.messaggio,"abort")!=0))
+			
+			while(1)
 			{
 				printf("messaggio server: %s \n",pacchettoApplicativo.messaggio);
 				//se c'è una richiesta di scrittura allora si manda l'id di transazione, dopodichè il server chiede con un while infinito di inserire le modifiche
 // 				una fatto commit da parte dell'utente si sottomettono le modifiche effettuate, altrimenti l'abort fa eliminare il file temporaneo
-				char stringaImmessa[600],IDtransazione[10];
+				char stringaImmessa[600],IDtransazione[11];
 				
 				
 				strcpy(IDtransazione,pacchettoApplicativo.idTransazione);
@@ -126,21 +126,34 @@ main() {
 				bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				inserisciTesto(stringaImmessa,sizeof(stringaImmessa));
 				strcpy(pacchettoApplicativo.messaggio,stringaImmessa);
-				printf("ho scritto %s\n",pacchettoApplicativo.messaggio);
+			
 				strcpy(pacchettoApplicativo.idTransazione,IDtransazione);
-				printf("Metto ID %s\n",pacchettoApplicativo.idTransazione);
+				
 				strcpy(pacchettoApplicativo.tipoOperazione,"scrivi file");
 				
-				printf("Sto inviando %s\n",pacchettoApplicativo.messaggio);
+				
 				
 				sendPacchetto(&socketCL, &pacchettoApplicativo);
+				
+				if(strcmp(pacchettoApplicativo.messaggio,"commit")==0)
+				{
+					printf("Modifiche in salvataggio\n");
+					break;
+					
+				}
+				if(strcmp(pacchettoApplicativo.messaggio,"abort")==0)
+				{
+					printf("Modifiche annullate\n");
+					break;
+					
+				}
 				
 				bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				
 				receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				
-				
 			}
+			
 		}
 // 		*******************************Marina
 // 		commentato perchè non ci serve la copia del file sul server
@@ -151,12 +164,13 @@ main() {
 // 	}
 		
 		//se il server fa una qualunque altra operazione che non sia collegata al file trovato, stampo il messaggio che altrimenti sarebbe incomprensibile
-		if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file, trovato") < 0) {
+		if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file, trovato") < 0)
+		{
 			printf("[%s] %s\n", pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 		}
 		
 // 		riceve il pacchetto dal server se ha risposto al tentativo di scrittura
-		printf("Operazione ricevuta: %s\n", pacchettoApplicativo.tipoOperazione);
+// 		printf("Operazione ricevuta: %s\n", pacchettoApplicativo.tipoOperazione);
 		
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "Arrivederci") == 0) {
 			printf("Chiudo la connessione\n");

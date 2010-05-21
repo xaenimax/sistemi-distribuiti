@@ -9,7 +9,7 @@ memoriaCondivisa : memoriaCondivisa.c
 	gcc -o memoriaCondivisa memoriaCondivisa.c -lpthread
 utility : utility.o ../funzioniGeneriche.o ../funzioniSocket.o
 	gcc utility.o ../funzioniGeneriche.o ../funzioniSocket.o -o utility
-	cp fileorigine.txt filediriferimento.txt
+	cp marina2.txt marina.txt
 
 funzioniSocket.o : funzioniSocket.c
 	gcc -c ../funzioniSocket.c

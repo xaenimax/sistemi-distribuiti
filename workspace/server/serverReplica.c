@@ -234,8 +234,9 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,&connessioneNormale);
-					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+					numeroDatiRicevuti=richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,&connessioneNormale);
+// 					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+					
 				}
 				
 				else {
