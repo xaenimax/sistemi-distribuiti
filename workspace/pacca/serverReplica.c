@@ -437,7 +437,7 @@ void mainFiglioAgrawala() {
 
 			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
-				createSocketStream(&socketPerRichiestaConferme[1]);
+				createSocketStream(&socketPerRichiestaConferme);
 				printf("   %d: Sto per connettermi all'ip: ", getpid());
 				stampaIpEporta(&indirizzoServer[iDelWhile]);
 				printf("\n");
