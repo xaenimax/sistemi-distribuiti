@@ -18,7 +18,7 @@
 
 /* funzione che implementa una chiamata al server dns per ricevere un indirizzo, da ritornare alla classe chiamante */
 
-char *contattaDNS() {
+void contattaDNS(char* riferimento_replica) {
 
 	int socketCl, n;
 	char recvline[MAXLINE], bufferDiInvio[MAXLINE];
@@ -26,7 +26,6 @@ char *contattaDNS() {
 	struct sockaddr_in servaddr;
 
 	//utili per il dns
-	char* riferimento_replica = NULL;
 	char* riferimento2 = NULL;  //da rimuovere
 	char* indirizzo_sreplica = NULL;
 	char* porta_sreplica = 0;
@@ -91,7 +90,7 @@ char *contattaDNS() {
 
  		printf("Ricevuto Indirizzo Server Replica: %s", risposta.messaggio);
 
- 		riferimento_replica = (char*)malloc(strlen(risposta.messaggio)*sizeof(char));
+//  		riferimento_replica = (char*)malloc(strlen(risposta.messaggio)*sizeof(char));
  		strcpy(riferimento_replica, risposta.messaggio);
 
 
@@ -131,5 +130,5 @@ char *contattaDNS() {
 
 			printf("\n prova MESSAGGIO	2  %s \n", risposta.messaggio);
 
-	return (char*)riferimento_replica;
+// 	return (char*)riferimento_replica;
 } //end main

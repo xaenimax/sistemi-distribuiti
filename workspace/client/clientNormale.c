@@ -6,7 +6,7 @@
 main() {
 
 	//**********************parte relativa al dns
-	char* riferimento_servreplica = NULL;
+	char riferimento_servreplica[600];
 	char* indirizzo_servreplica = NULL;
 	char* porta_servreplica = 0;
 	
@@ -17,7 +17,7 @@ main() {
 	char *cartellaDoveSalvareIfile="fileCondivisi/";
 	char indirizzoIpDelServer[15];
 
-	riferimento_servreplica = (char*)contattaDNS();
+	contattaDNS(riferimento_servreplica);
     //separo indirizzo e porta (spostarlo in una funzione esterna!)
     char *p = strtok (riferimento_servreplica,":");
 
