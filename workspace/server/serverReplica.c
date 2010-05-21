@@ -1,29 +1,27 @@
-#include "../general.h"
-// #include "funzioniServerReplica.h"
-// #include "../funzioniGeneriche.h"
-
-#define SERV_PORT   5193
-#define SERVICE_PORT	6000
-#define BACKLOG       10
-#define MAXLINE     1024
-#include "../funzioniGeneriche.h"
+#include "serverReplica.h"
 
 void mainDelFiglio();
 void mainDelFiglioDiServizio();
 void acceptFiglioNormale();
 void acceptFiglioDiServizio();
 void interrompi();
-
-
-int pid, pidServizio, i, ID_numerico_server;
-int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
-struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
-const char directoryDeiFile[] = "fileCondivisi/";
-char fileDiCuiSiIntendeFareIlCommit[10][100];
+void mainFiglioAgrawala();
 
 main( int argc, char *argv[] ) {
         
-	if ( argc != 2 ) //andiamo a prendere l'id numerico da riga di comando
+	struct fileApertiDalServer *listaFileAperti;
+	
+	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
+	srand(time(NULL));
+	chiaveMemCondivisa = 48 + (rand()/(int)(((unsigned)RAND_MAX + 1) / 74));
+	
+	
+	idSegmentoMemCond = shmget(chiaveMemCondivisa, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
+	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+
+	svuotaStrutturaListaFile(listaFileAperti);
+	
+	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
   {
 	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
 	exit(1);
@@ -33,17 +31,32 @@ main( int argc, char *argv[] ) {
 		ID_numerico_server = atoi(argv[1]);
 	}
 
-	printf("%d: Avvio del server numero (ID) %d \n", getpid(), ID_numerico_server);
+	if(argc < 3) {
+		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
+		portaDiServizio = SERVICE_PORT;
+	}
+	else
+		portaDiServizio = atoi(argv[2]);
+	
+		if(argc < 4) {
+		printf("Porta normale non specificata. Verra' usata la porta %d.\n", SERVICE_PORT);
+		portaRichiesteNormali = NORMAL_PORT;
+	}
+	else
+		portaRichiesteNormali = atoi(argv[3]);
+	
+	
+	printf("%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
 	
 	createSocketStream(&listenNormale);
 	createSocketStream(&listenDiServizio);
 
-	inizializza_memset(&indirizzoNormale, SERV_PORT);
-	inizializza_memset(&indirizzoDiServizio, SERVICE_PORT);
+	inizializza_memset(&indirizzoNormale, portaRichiesteNormali);
+	inizializza_memset(&indirizzoDiServizio, portaDiServizio);
 	
-	int reuse=1;
-	setsockopt(listenNormale,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(int));
-	setsockopt(listenDiServizio,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(int));
+	int reuse = 1;
+	setsockopt(listenNormale, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+	setsockopt(listenDiServizio, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
 	
 	bindSocket(&listenNormale, &indirizzoNormale);
 	bindSocket(&listenDiServizio, &indirizzoDiServizio);
@@ -63,7 +76,7 @@ main( int argc, char *argv[] ) {
 		//il padre crea un altro figlio per le richieste di servizio
 		pid = fork();
 		acceptFiglioDiServizio();
-			
+		
 		printf("%d: Server avviato:\n", getpid());
 		
 		// -1 sta per aspetto qualasiasi figlio che termina, 0 sta per nessuna opzione, rimango bloccato fino a che non muore qualche figlio.
@@ -103,22 +116,27 @@ void acceptFiglioDiServizio() {
 		
 		printf(" %d: In attesa di una richiesta di servizio...\n", getpid());
 		
-		while(1) {
-			acceptSocket(&connessioneDiServizio, &listenDiServizio);
+		pidFiglioAgrawala = fork();
+		mainFiglioAgrawala();
+		//se sono il padre faccio le accept per le richieste di servizio
+		if(pidFiglioAgrawala != 0) {
+			while(1) {
+				acceptSocket(&connessioneDiServizio, &listenDiServizio);
 			
 					//se è stata accettata una connessione normale...
-			if(connessioneDiServizio != 0) {
-				printf(" %d: Creazione di un figlio di servizio in corso...\n", getpid());
+				if(connessioneDiServizio != 0) {
+					printf(" %d: Creazione di un figlio di servizio in corso...\n", getpid());
 				
-				pid = fork();
+					pid = fork();
 			
-		// 				printf("%d: Figlio creato\n", getpid());
+					//printf("%d: Figlio creato\n", getpid());
 				
-				mainDelFiglioDiServizio();
+					mainDelFiglioDiServizio();
 				
-				//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
+					//remember: non c'è bisogno di fare la close del socket nel figlio in quanto esso ripassa da qua e termina
 				
-				closeSocket(&connessioneDiServizio);
+					closeSocket(&connessioneDiServizio);
+				}
 			}
 		}
 	}
@@ -139,14 +157,12 @@ void mainDelFiglio() {
 			int lunghezzaAddr = sizeof(ricevutoSuAddr);
 			getpeername(connessioneNormale, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
 			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
-				
 			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 			
 			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 
 			while(numeroDatiRicevuti > 0) {
- 
-				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
+// 				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
 				
 				//se il client chiede il logout chiudo la connessione
 				if(strcmp(pacchettoApplicativo.tipoOperazione, "uscita") == 0) {					
@@ -294,6 +310,35 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
 				}
 				
+				else if(strcmp(pacchettoRicevuto.tipoOperazione, "chiedo di fare commit") == 0) {
+						struct fileApertiDalServer *listaFile;
+						listaFile = malloc(15*sizeof(struct fileApertiDalServer));
+						
+						listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+					
+						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevuto.timeStamp);
+						
+						int i;
+						
+						//controllo se sto usando il file
+						for(i = 0; i < 10; i++) {
+							//se sto usando il file controllo se io ho più priorità dell'altro aspetto fino a che non finisco di usarlo
+							while(strcmp(listaFile[i].nomeFile, pacchettoRicevuto.nomeFile) == 0 && ID_numerico_server < pacchettoRicevuto.timeStamp) {
+								printf("  %d: Sto usando il file \'%s\', il server %d dovrà aspettare\n", getpid(), listaFile[i].nomeFile, pacchettoRicevuto.timeStamp);
+								sleep(10);
+							}
+						}
+						
+						bzero(&pacchettoDaInviare, sizeof(struct pacchetto));
+						strcpy(pacchettoDaInviare.tipoOperazione, "conferma per il commit");
+						strcpy(pacchettoDaInviare.messaggio, "ok");
+						
+						printf("  %d: Invio la conferma al server %d\n", getpid(), pacchettoRicevuto.timeStamp);
+						sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);	
+						
+						dimensioneDatiRicevuti = 0;
+				}
+				
 				//richiesta di uscita
 				else if (strcmp(pacchettoRicevuto.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
@@ -326,6 +371,79 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 			
 			exit(0);
 		}
+}
+
+void mainFiglioAgrawala() {
+	if(pidFiglioAgrawala == 0) {
+		
+		struct fileApertiDalServer *listaFile;
+		listaFile = malloc(15*sizeof(struct fileApertiDalServer));
+		int i, socketPerRichiestaConferme[4], confermeRicevute = 0;
+		struct sockaddr_in indirizzoServer[4];
+		struct pacchetto pacchettoApplicativo;
+		
+		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+		
+		while(1) {
+			
+			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
+			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
+				if(i == 9) {
+					sleep(1); //Controllo ogni secondo se qualcuno vuole fare il commit. Evita che la cpu vada al 100%
+					i = -1; // i è -1 perché appena si rifà il ciclo viene incrementato da i++
+				}
+			}
+			
+			printf("   %d: Trovata richiesta di commit. File: %s, i: %d\n", getpid(), listaFile[i].nomeFile, i);
+			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
+			
+			bzero(&indirizzoServer[0], sizeof(struct sockaddr_in));
+			bzero(&indirizzoServer[1], sizeof(struct sockaddr_in));
+// 			bzero(&indirizzoServer[2], sizeof(struct sockaddr_in));
+// 			bzero(&indirizzoServer[3], sizeof(struct sockaddr_in));
+
+			//Questi ip dovranno essere presi dal DNS
+			assegnaIPaServaddr("127.0.0.1", 5001, &indirizzoServer[0]);
+			assegnaIPaServaddr("127.0.0.1", 5002, &indirizzoServer[1]);
+// 			assegnaIPaServaddr("127.0.0.1", 5003, &indirizzoServer[2]);
+			
+			int iDelWhile = 0;
+
+			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
+
+				createSocketStream(&socketPerRichiestaConferme[1]);
+				printf("   %d: Sto per connettermi all'ip: ", getpid());
+				stampaIpEporta(&indirizzoServer[iDelWhile]);
+				printf("\n");
+				connectSocket(&socketPerRichiestaConferme[1], &indirizzoServer[iDelWhile]);
+				
+				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo.nomeFile, listaFile[i].nomeFile);
+				strcpy(pacchettoApplicativo.tipoOperazione, "chiedo di fare commit");
+				pacchettoApplicativo.timeStamp = ID_numerico_server;
+				
+				printf("   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
+				sendPacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo);
+				
+				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+				receivePacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo, sizeof(struct pacchetto));
+				
+// 				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
+				
+				//se il server mi da la conferma che posso fare il commit mi segno la sua conferma
+				if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
+					printf("   %d:[%s] Ricevuta conferma dal server %d\n", getpid(), pacchettoApplicativo.tipoOperazione, iDelWhile);
+					confermeRicevute++;
+				}
+				
+				closeSocket(&socketPerRichiestaConferme[1]);
+				iDelWhile++;
+			}
+			
+			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme! Inserire qui di seguito le operazioni da fare per il commit\n", getpid());
+			strcpy(listaFile[i].nomeFile, "");
+		}
+	}
 }
 
 void interrompi() {
