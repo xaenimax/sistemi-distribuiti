@@ -44,7 +44,6 @@ main() {
 	inetPton(&servaddr, indirizzo_servreplica); //ora è preso dinamicamente
 
 	connectSocket(&socketCL, &servaddr);
-	printf("%d %s",ntohs(servaddr.sin_port),(char*)inet_ntoa(servaddr.sin_addr));
 
 	while(1) {
 		
@@ -110,12 +109,11 @@ main() {
 		
 		// ****************************Marina	
 		else if(strcmp(pacchettoApplicativo.tipoOperazione,"scrivi file, pronto")==0)
-		{
-			printf("ID transazione generato.\n");
-			
-			while(1)
+		{			
+			int status=1;
+			while(status==1)
 			{
-				printf("messaggio server: %s \n",pacchettoApplicativo.messaggio);
+				printf("[%s]Messaggio server: %s \n",pacchettoApplicativo.tipoOperazione,pacchettoApplicativo.messaggio);
 				//se c'è una richiesta di scrittura allora si manda l'id di transazione, dopodichè il server chiede con un while infinito di inserire le modifiche
 // 				una fatto commit da parte dell'utente si sottomettono le modifiche effettuate, altrimenti l'abort fa eliminare il file temporaneo
 				char stringaImmessa[600],IDtransazione[11];
@@ -138,20 +136,20 @@ main() {
 				if(strcmp(pacchettoApplicativo.messaggio,"commit")==0)
 				{
 					printf("Modifiche in salvataggio\n");
-					break;
+					status=0;
 					
 				}
-				if(strcmp(pacchettoApplicativo.messaggio,"abort")==0)
+				else if(strcmp(pacchettoApplicativo.messaggio,"abort")==0)
 				{
 					printf("Modifiche annullate\n");
-					break;
+					status=0;
 					
 				}
+				else{
+					bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				
-				bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
-				
-				receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
-				
+					receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+				}	
 			}
 			
 		}

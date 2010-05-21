@@ -2,6 +2,7 @@
 // #include "funzioniServerReplica.h"
 #include "funzioniGeneriche.h"
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -149,6 +150,7 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 		if(strcmp(pacchettoApplicativo->messaggio,"commit")==0)
 		{
 			// 		richiama il metodo con l'algoritmo di agrawala
+			
 // dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
 			
 			if(remove(percorsoOrigine)<0)
@@ -189,6 +191,8 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 			strcpy(pacchettoApplicativo->messaggio,"abort");
 		}
 		else{
+			strcat(pacchettoApplicativo->messaggio,"\n");
+			fwrite(pacchettoApplicativo->messaggio,1, strlen(pacchettoApplicativo->messaggio),fileDiScritturaMomentanea); 
 			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 			strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");

@@ -145,7 +145,8 @@ void mainDelFiglio() {
 			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 
 			while(numeroDatiRicevuti > 0) {
-// 				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
+ 
+				printf("  %d: Operazione ricevuta: %s\n", getpid(), pacchettoApplicativo.tipoOperazione);
 				
 				//se il client chiede il logout chiudo la connessione
 				if(strcmp(pacchettoApplicativo.tipoOperazione, "uscita") == 0) {					
@@ -219,7 +220,7 @@ void mainDelFiglio() {
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo), 0);
+					numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					
 					char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
 					strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
@@ -234,8 +235,8 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					numeroDatiRicevuti=richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,&connessioneNormale);
-// 					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+					richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,&connessioneNormale);
+					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 					
 				}
 				
