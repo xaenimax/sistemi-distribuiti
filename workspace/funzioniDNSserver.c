@@ -14,10 +14,10 @@ char** inizializza_lista() {
 		return lista_ind;
 }
 
-inizializza_lista_pacca(char** listaDaInizializzare) {
+void inizializza_lista_pacca(char** listaDaInizializzare) {
 	int i;
 	for(i = 0; i < MAX_QTY; i++)
-		listaDaInizializzare[i] = malloc(MAX_STRING_LENGTH);
+		listaDaInizializzare[i] = malloc(MAX_STRING_LENGTH*sizeof(char));
 }
 
 

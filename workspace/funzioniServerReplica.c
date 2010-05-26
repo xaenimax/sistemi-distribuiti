@@ -37,7 +37,7 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
 
-int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct pacchetto *pacchettoApplicativo,int *socketConnesso){
+int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond){
 	
 	printf("  %d [%s]Creazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
@@ -167,13 +167,13 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 			strcpy(listaFile[i].nomeFile, pacchettoApplicativo->nomeFile);
 			
 			
-			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 			strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
 			strcpy(pacchettoApplicativo->messaggio, "Questo è l'ack");
-			sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+			sendPacchetto(socketConnesso, pacchettoApplicativo);
 			
 			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(struct pacchetto));					
+			receivePacchetto(socketConnesso, pacchettoApplicativo, sizeof(struct pacchetto));					
 	
 // dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
 			

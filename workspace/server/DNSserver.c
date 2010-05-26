@@ -1,15 +1,3 @@
-// #include <sys/types.h>
-// #include <sys/socket.h>
-// #include <netinet/in.h>
-// #include <arpa/inet.h>
-// 
-// #include <unistd.h>
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <string.h>
-// #include <time.h>
-// #include <signal.h>
-// #include <sys/wait.h>
 #include "../general.h"
 
 
@@ -28,7 +16,7 @@ int connsd, listensdDiServizio, connsdDiServizio, connessioneNormale;
 struct sockaddr_in servaddrDiServizio;
 struct sockaddr_in ricevutoSuAddr;
 
-static char** lista_server;
+char** lista_server;
 int server_scelto = 0; //ogni volta che un client si connette viene incrementato per selezionare sempre un server diverso
 				   //con strategia ad anello
 int byte_ricvt = 0;
