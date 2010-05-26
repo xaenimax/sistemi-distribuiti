@@ -10,8 +10,8 @@
 #define MAXLINE     1024
 
 
-int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala, portaDiServizio, portaRichiesteNormali, chiaveMemCondivisa;
+int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala, portaDiServizio, portaRichiesteNormali, chiaveMemCondivisaListaFile,chiaveMemCondivisaAck;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr;
 const char directoryDeiFile[] = "fileCondivisi/";
-int idSegmentoMemCond;
+int idSegmentoMemCondListaFile,idSegmentoMemCondAck;

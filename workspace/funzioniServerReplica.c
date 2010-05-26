@@ -150,7 +150,31 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 		if(strcmp(pacchettoApplicativo->messaggio,"commit")==0)
 		{
 			// 		richiama il metodo con l'algoritmo di agrawala
+			struct fileApertiDalServer *listaFile;
+			listaFile = malloc(15*sizeof(struct fileApertiDalServer));
+			listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 			
+			printf("  %d:[%s] Provo a fare agrawala! File per provare: %s\n", getpid(), pacchettoApplicativo->tipoOperazione, pacchettoApplicativo->nomeFile);
+			int i;
+			//cerco nell'array dei file, la prima posizione vuota e vado ad inserire il mio file
+			for(i = 0; i < 10 && strlen(listaFile[i].nomeFile) != 0; i++) {
+				printf("  %d:[%s, DEBUG] Cerco una posizione vuota dove inserire il mio file.\n", getpid(), pacchettoApplicativo->tipoOperazione);
+				if(i == 9)
+					i = -1;
+			}
+			
+			printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoApplicativo->tipoOperazione, i);
+			strcpy(listaFile[i].nomeFile, pacchettoApplicativo->nomeFile);
+			
+			
+			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+			strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
+			strcpy(pacchettoApplicativo->messaggio, "Questo è l'ack");
+			sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+			
+			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(struct pacchetto));					
+	
 // dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
 			
 			if(remove(percorsoOrigine)<0)

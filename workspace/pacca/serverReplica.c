@@ -13,11 +13,12 @@ main( int argc, char *argv[] ) {
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
 	srand(time(NULL));
-	chiaveMemCondivisa = 48 + (rand()/(int)(((unsigned)RAND_MAX + 1) / 74));
+	chiaveMemCondivisaListaFile = 48 + (rand()/(int)(((unsigned)RAND_MAX + 1) / 74));
+	chiaveMemCondivisaAck= 48 +(rand()/(int)(((unsigned)RAND_MAX + 1) / 74))+1;
 	
-	
-	idSegmentoMemCond = shmget(chiaveMemCondivisa, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
-	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+	idSegmentoMemCondAck=shmget(chiaveMemCondivisaAck,sizeof(int),IPC_CREAT|0666);
+	idSegmentoMemCondListaFile = shmget(chiaveMemCondivisaListaFile, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
+	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCondListaFile, 0 , 0);
 
 	svuotaStrutturaListaFile(listaFileAperti);
 	
@@ -258,7 +259,7 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "prova agrawala") == 0) {
 					struct fileApertiDalServer *listaFile;
 					listaFile = malloc(15*sizeof(struct fileApertiDalServer));
-					listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+					listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCondListaFile, 0 , 0);
 					
 					printf("  %d:[%s] Provo a fare agrawala! File per provare: %s\n", getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.nomeFile);
 					int i;
@@ -340,7 +341,7 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						struct fileApertiDalServer *listaFile;
 						listaFile = malloc(15*sizeof(struct fileApertiDalServer));
 						
-						listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+						listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCondListaFile, 0 , 0);
 					
 						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevuto.timeStamp);
 						
@@ -408,7 +409,7 @@ void mainFiglioAgrawala() {
 		struct sockaddr_in indirizzoServer[4];
 		struct pacchetto pacchettoApplicativo;
 		
-		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCondListaFile, 0 , 0);
 		
 		while(1) {
 			
