@@ -37,8 +37,11 @@ main() {
 	
 	listenSocket(&listensdDiServizio, BACKLOG);
 	
-	inizializza_lista_pacca(lista_server);
-
+	int i;
+	lista_server = malloc(5*19*sizeof(char));
+	for(i = 0; i < 5; i++) 
+		lista_server[i] = malloc(19*sizeof(char));
+	
 	prendi_indirizzi(lista_server);    //prelievo e memorizzazione indirizzi da file LISTA_SERVER
 
 	//printf("prova funzioni ok %s", lista_server[4]);

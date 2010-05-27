@@ -14,18 +14,10 @@ char** inizializza_lista() {
 		return lista_ind;
 }
 
-void inizializza_lista_pacca(char** listaDaInizializzare) {
-	int i;
-	for(i = 0; i < MAX_QTY; i++)
-		listaDaInizializzare[i] = malloc(MAX_STRING_LENGTH*sizeof(char));
-}
-
-
-
 //----------------prende gli indirizzi da file e li memorizza nel vettore-------------------//
 void prendi_indirizzi(char** lista_indirizzi) {
 
-
+	
 	  char c[17];  /* indirizzo */
 	  FILE *file;
       //static char lista_indirizzi[5][17+1];   // Vettore di 5 stringhe da 17 caratteri
@@ -45,7 +37,6 @@ void prendi_indirizzi(char** lista_indirizzi) {
 	    printf("File LISTA_server correttamente aperto:\n\n");
 
 	    while(fgets(c, 17, file)!=NULL) { //preleva indirizzi dal file di testo
-
 	    	stpcpy (lista_indirizzi[i], c);  //li memorizza in un vettore locale
 	    	i++;
 
