@@ -32,14 +32,14 @@ main( int argc, char *argv[] ) {
 	}
 
 	if(argc < 3) {
-		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
+// 		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
 		portaDiServizio = SERVICE_PORT;
 	}
 	else
 		portaDiServizio = atoi(argv[2]);
 	
 		if(argc < 4) {
-		printf("Porta normale non specificata. Verra' usata la porta %d.\n", SERVICE_PORT);
+// 		printf("Porta normale non specificata. Verra' usata la porta %d.\n", SERVICE_PORT);
 		portaRichiesteNormali = NORMAL_PORT;
 	}
 	else
@@ -381,15 +381,19 @@ void mainFiglioAgrawala() {
 		int i, socketPerRichiestaConferme[4], confermeRicevute = 0;
 		struct sockaddr_in indirizzoServer[4];
 		struct pacchetto pacchettoApplicativo;
-		
-		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+
+		svuotaStrutturaListaFile(listaFile);
 		
 		while(1) {
 			
+			printf("   %d: In attesa di fare agrawala..\n", getpid());
+			
 			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
 			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
+				listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+				printf("   %d:l[%d]: \'%s\'\n", getpid(), i, listaFile[i].nomeFile);
 				if(i == 9) {
-					sleep(1); //Controllo ogni secondo se qualcuno vuole fare il commit. Evita che la cpu vada al 100%
+					sleep(3); //Controllo ogni secondo se qualcuno vuole fare il commit. Evita che la cpu vada al 100%
 					i = -1; // i è -1 perché appena si rifà il ciclo viene incrementato da i++
 				}
 			}
