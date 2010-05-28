@@ -135,9 +135,18 @@ main() {
 				
 				if(strcmp(pacchettoApplicativo.messaggio,"commit")==0)
 				{
-					printf("Modifiche in salvataggio\n");
-					status=0;
+					printf("Modifiche in salvataggio, attendere...");
+					bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+					receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 					
+					//se il commit è andato a buon fine
+					if(strcmp(pacchettoApplicativo.tipoOperazione, "commit eseguito") == 0) {
+						printf("%s\n", pacchettoApplicativo.messaggio);
+						status=0;
+					}
+					//c'è stato qualche problema con agrawala e il server me lo comunica.
+					else
+						printf("[%s] %s\n", pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 				}
 				else if(strcmp(pacchettoApplicativo.messaggio,"abort")==0)
 				{

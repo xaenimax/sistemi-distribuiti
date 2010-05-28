@@ -13,6 +13,8 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/dir.h>
+#include <sys/stat.h>
+#include <fcntl.h> 
 
 struct pacchetto {
 	char tipoOperazione[200];
@@ -25,4 +27,5 @@ struct pacchetto {
 
 struct fileApertiDalServer {
 	char nomeFile[100];
+	char idTransazione[11];
 };

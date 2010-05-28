@@ -378,16 +378,17 @@ void mainFiglioAgrawala() {
 		
 		struct fileApertiDalServer *listaFile;
 		listaFile = malloc(15*sizeof(struct fileApertiDalServer));
-		int i, socketPerRichiestaConferme[4], confermeRicevute = 0;
+		int i, socketPerRichiestaConferme[4], confermeRicevute = 0, descrittoreFileFifo;
 		struct sockaddr_in indirizzoServer[4];
 		struct pacchetto pacchettoApplicativo;
+		char percorsoFileFifo[50];
 
 		svuotaStrutturaListaFile(listaFile);
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 		
 		while(1) {
 			
-			printf("   %d: In attesa di fare agrawala..\n", getpid());
+			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
 			
 			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
 			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
@@ -443,7 +444,22 @@ void mainFiglioAgrawala() {
 				iDelWhile++;
 			}
 			
-			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme! Inserire qui di seguito le operazioni da fare per il commit\n", getpid());
+			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme!\n", getpid());
+			
+			//-------- Scrivo nella Pipe per informare l'altro processo che agrawala è ok e può scrivere il file -----
+			strcpy(percorsoFileFifo, "/tmp/");
+			strcat(percorsoFileFifo, listaFile[i].idTransazione);
+			
+			mkfifo(percorsoFileFifo, 0666);
+			
+			descrittoreFileFifo = open(percorsoFileFifo, O_WRONLY);
+			if(descrittoreFileFifo < 0)
+				perror("   %d: Errore nella creazione della memoria dinamica\n");
+			
+			write(descrittoreFileFifo, "Ok", sizeof("ok"));
+			close(descrittoreFileFifo);
+			//--------------------------------------------------------------------
+			
 			strcpy(listaFile[i].nomeFile, "");
 		}
 	}

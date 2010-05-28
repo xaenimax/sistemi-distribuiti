@@ -108,7 +108,6 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	else {
 		printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
 	}
-	
 
 	fseek(fileOriginaleDaCopiare,0L,SEEK_END);
 	dimensioneFile= ftell(fileOriginaleDaCopiare);
@@ -153,6 +152,8 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		{
 			// 		richiama il metodo con l'algoritmo di agrawala
 			struct fileApertiDalServer *listaFile;
+			char percorsoFileFifo[50], contenutoFileFifo[100];
+			int descrittoreFileFifo;
 			listaFile = malloc(15*sizeof(struct fileApertiDalServer));
 			
 			svuotaStrutturaListaFile(listaFile);
@@ -169,16 +170,31 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			}
 			
 // 			printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoApplicativo->tipoOperazione, i);
+			//Scrivendo in listaFile, che è la memoria dinamica condivisa, avviso il figlio di agrawala che dovrà cominciare a fare agrawala
 			strcpy(listaFile[i].nomeFile, nomeFileDaSostituire);
+			strcpy(listaFile[i].idTransazione, IDgenerato);
+			
+			//----------Ora comincio a vedere se il figlio di agrawala ha finito di ricevere le conferme
+			strcpy(percorsoFileFifo, "/tmp/");
+			strcat(percorsoFileFifo, IDgenerato);
+			
+			while(strcmp(contenutoFileFifo, "Ok") != 0) {
+				sleep(1);
+				descrittoreFileFifo = open(percorsoFileFifo, O_RDONLY);
+				read(descrittoreFileFifo, contenutoFileFifo, sizeof(contenutoFileFifo));
+				close(descrittoreFileFifo);
+			}
+			//----------------
+			
+			printf("  %d: Agrawala ha detto si'. :D Avviso il client che il commit è andato a buon fine\n", getpid());
 			
 			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 			strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
-			strcpy(pacchettoApplicativo->messaggio, "Questo è l'ack");
+			strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
 			sendPacchetto(socketConnesso, pacchettoApplicativo);
 			
-			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-			receivePacchetto(socketConnesso, pacchettoApplicativo, sizeof(struct pacchetto));					
-	
+			printf("  %d: Spedita la conferma al client.\n", getpid());
+			
 // dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
 			
 			if(remove(percorsoOrigine)<0)
@@ -201,7 +217,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 			strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 			strcpy(pacchettoApplicativo->messaggio,"commit");
-			printf("  %d [%s]Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
+			printf("  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		}
 		
 		else if(strcmp(pacchettoApplicativo->messaggio,"abort")==0)
