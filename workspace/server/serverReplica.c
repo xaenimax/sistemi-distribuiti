@@ -251,7 +251,7 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					richiestaScritturaFile(IDTransazione,pacchettoApplicativo.nomeFile,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond);
+					richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond);
 					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 					
 				}
@@ -383,6 +383,7 @@ void mainFiglioAgrawala() {
 		struct pacchetto pacchettoApplicativo;
 
 		svuotaStrutturaListaFile(listaFile);
+		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 		
 		while(1) {
 			
@@ -390,15 +391,13 @@ void mainFiglioAgrawala() {
 			
 			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
 			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
-				listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
-				printf("   %d:l[%d]: \'%s\'\n", getpid(), i, listaFile[i].nomeFile);
 				if(i == 9) {
 					sleep(3); //Controllo ogni secondo se qualcuno vuole fare il commit. Evita che la cpu vada al 100%
 					i = -1; // i è -1 perché appena si rifà il ciclo viene incrementato da i++
 				}
 			}
 			
-			printf("   %d: Trovata richiesta di commit. File: %s, i: %d\n", getpid(), listaFile[i].nomeFile, i);
+			printf("   %d: Trovata richiesta di commit. File: \'%s\', i: %d\n", getpid(), listaFile[i].nomeFile, i);
 			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
 			
 			bzero(&indirizzoServer[0], sizeof(struct sockaddr_in));

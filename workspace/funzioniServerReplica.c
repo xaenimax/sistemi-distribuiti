@@ -37,34 +37,36 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
 
-int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond){
+int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond){
 	
 	printf("  %d [%s]Creazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
 	unsigned long int dimensioneFile=0,numeroByteLetti=0;
 	int numeroDiPartiDaLeggere;
-	char *buffer, *stringaImmessa, *percorsoOrigine, *percorsoDestinazione,*nomeFileTemporaneo,*nomeDaSostituire;
+	char *buffer, *stringaImmessa, *percorsoOrigine, *percorsoDestinazione,*nomeFileTemporaneo,*nomeDaSostituire, *nomeFileDaSostituire;
 	FILE *fileOriginaleDaCopiare, *fileDiScritturaMomentanea;
 	
-	nomeDaSostituire=malloc(100);
-	buffer=malloc(500);
-	stringaImmessa=malloc(100);
-	percorsoDestinazione=malloc(100);
-	nomeFileTemporaneo=malloc(100);
+	nomeDaSostituire=malloc(100*sizeof(char));
+	nomeFileDaSostituire=malloc(100*sizeof(char));
+	buffer=malloc(500*sizeof(char));
+	stringaImmessa=malloc(100*sizeof(char));
+	percorsoDestinazione=malloc(100*sizeof(char));
+	nomeFileTemporaneo=malloc(100*sizeof(char));
+	percorsoOrigine=malloc(100*sizeof(char));
+	
+	strcpy(nomeFileDaSostituire, pacchettoApplicativo->nomeFile);
 	
 	//preparazione dei percorsi dei file da utilizzare
 	strcpy(nomeDaSostituire,nomeFileDaSostituire);
-	strcpy(percorsoDestinazione, "./fileCondivisi/");
+	strcpy(percorsoDestinazione, "fileCondivisi/");
 	strcpy(nomeFileTemporaneo,IDgenerato);
 	strcat(nomeFileTemporaneo,".marina");
 	strcat(percorsoDestinazione,nomeFileTemporaneo);
-	strcpy(percorsoOrigine,"./fileCondivisi/");
+	strcpy(percorsoOrigine,"fileCondivisi/");
 	strcat(percorsoOrigine,nomeFileDaSostituire);
-
 	
 	printf("  %d: [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
 	fileDiScritturaMomentanea=fopen(percorsoDestinazione,"a");
-	
 	// apro i file con relativi controlli di errore
 	if ((fileDiScritturaMomentanea<0)){
 		printf("  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
@@ -133,9 +135,9 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 // prende le cose scritte dall'utente e le aggiunge al file temporaneo
 	//svuoto il buffer di invio
 	bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-	strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
-	strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
-	strcpy(pacchettoApplicativo->messaggio,"Inserisci le modifiche da effettuare, scrivere commit per terminare, abort per annullare");
+	strncpy(pacchettoApplicativo->idTransazione,IDgenerato,strlen(IDgenerato));
+	strncpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto",strlen("scrivi file, pronto"));
+	strncpy(pacchettoApplicativo->messaggio,"Inserisci le modifiche da effettuare, scrivere commit per terminare, abort per annullare",strlen("Inserisci le modifiche da effettuare, scrivere commit per terminare, abort per annullare"));
 	
 	while((strcmp(pacchettoApplicativo->messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort")!=0))
 	{
@@ -152,20 +154,22 @@ int richiestaScritturaFile(char *IDgenerato, char *nomeFileDaSostituire,struct p
 			// 		richiama il metodo con l'algoritmo di agrawala
 			struct fileApertiDalServer *listaFile;
 			listaFile = malloc(15*sizeof(struct fileApertiDalServer));
+			
+			svuotaStrutturaListaFile(listaFile);
+
 			listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 			
-			printf("  %d:[%s] Provo a fare agrawala! File per provare: %s\n", getpid(), pacchettoApplicativo->tipoOperazione, pacchettoApplicativo->nomeFile);
+			printf("  %d:[%s] Commit in esecuzione! File: \'%s\'\n", getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
 			int i;
 			//cerco nell'array dei file, la prima posizione vuota e vado ad inserire il mio file
 			for(i = 0; i < 10 && strlen(listaFile[i].nomeFile) != 0; i++) {
-				printf("  %d:[%s, DEBUG] Cerco una posizione vuota dove inserire il mio file.\n", getpid(), pacchettoApplicativo->tipoOperazione);
+// 				printf("  %d:[%s, DEBUG] Cerco una posizione vuota dove inserire il mio file.\n", getpid(), pacchettoApplicativo->tipoOperazione);
 				if(i == 9)
 					i = -1;
 			}
 			
-			printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoApplicativo->tipoOperazione, i);
-			strcpy(listaFile[i].nomeFile, pacchettoApplicativo->nomeFile);
-			
+// 			printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoApplicativo->tipoOperazione, i);
+			strcpy(listaFile[i].nomeFile, nomeFileDaSostituire);
 			
 			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 			strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
