@@ -1,0 +1,5 @@
+Ricordati che ogni volta che compili ti perdi le modifiche scritte nella volta precedente
+
+ciao
+un due tre
+uscita
