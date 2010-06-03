@@ -161,11 +161,13 @@ int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *perc
 	numeroDiPartiDaLeggere=dimensioneFile/(sizeof(bufferTemporaneo));
 	
 	while(numeroDiPartiDaLeggere!=0){
+		bzero(bufferTemporaneo,sizeof(bufferTemporaneo));
 		fread( bufferTemporaneo,1, sizeof(bufferTemporaneo), fileOriginaleDaCopiare);
 		fwrite( bufferTemporaneo, 1, sizeof(bufferTemporaneo), fileDiDestinazione);
 		numeroDiPartiDaLeggere--;
 	}
 	if(numeroDiPartiDaLeggere==0){
+		bzero(bufferTemporaneo,sizeof(bufferTemporaneo));
 		int numeroDiPartiDaLeggereAncora=dimensioneFile % sizeof(bufferTemporaneo);
 		fread( bufferTemporaneo,1, numeroDiPartiDaLeggereAncora, fileOriginaleDaCopiare);
 		fwrite( bufferTemporaneo, 1, numeroDiPartiDaLeggereAncora, fileDiDestinazione);

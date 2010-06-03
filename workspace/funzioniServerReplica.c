@@ -79,9 +79,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	}
 	
 	printf("  %d [%s] Apro il secondo file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,percorsoOrigine);
-	fileOriginaleDaCopiare = fopen(percorsoOrigine,"rb");		
-	
-	
+	fileOriginaleDaCopiare = fopen(percorsoOrigine,"a");		
 	
 	if(fileOriginaleDaCopiare<0){
 		printf("  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->nomeFile);
@@ -179,22 +177,30 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			
 // dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
 			
-			if(remove(percorsoOrigine)<0)
-			{
-				printf("  %d [%s]Errore di cancellazione del file originale da sostituire\n",getpid(),pacchettoApplicativo->tipoOperazione);
-				perror("");
-				return(-1);
-			}
+// 			if(remove(percorsoOrigine)<0)
+// 			{
+// 				printf("  %d [%s]Errore di cancellazione del file originale da sostituire\n",getpid(),pacchettoApplicativo->tipoOperazione);
+// 				perror("");
+// 				return(-1);
+// 			}
 			strcpy(nomeFileTemporaneo,IDgenerato);
 			strcat(nomeFileTemporaneo,".marina");
 		
-			if(rename(percorsoDestinazione,percorsoOrigine)<0)
-			{
-				printf("  %d [%s]Errore nella rinomina del file\n",getpid(),pacchettoApplicativo->tipoOperazione);
-				perror("");
-				return(-1);
-			}
-							
+// 			if(rename(percorsoDestinazione,percorsoOrigine)<0)
+// 			{
+// 				printf("  %d [%s]Errore nella rinomina del file\n",getpid(),pacchettoApplicativo->tipoOperazione);
+// 				perror("");
+// 				return(-1);
+// 			}
+
+			//Lo chiudo perchè dato che ci stavo scrivendo, il puntatore al file è alla fine e non copierebbe niente nel file originale
+			fclose(fileDiScritturaMomentanea);
+			fopen(percorsoDestinazione, "r");
+			copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
+			
+			if(copiaFile > 0)
+				remove(percorsoDestinazione);
+			
 			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 			strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
