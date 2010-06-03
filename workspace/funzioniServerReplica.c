@@ -107,31 +107,11 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	else {
 		printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
 	}
-
-// 	fseek(fileOriginaleDaCopiare,0L,SEEK_END);
-// 	dimensioneFile= ftell(fileOriginaleDaCopiare);
-// 	fseek(fileOriginaleDaCopiare,0L,SEEK_SET);
-// 	
-// 	printf("  %d [%s] copia in corso\n",getpid(),pacchettoApplicativo->tipoOperazione);
-// 	
-// // 	copia un file su quello temporaneo
-// 	numeroDiPartiDaLeggere=dimensioneFile/(sizeof(buffer));
-// 	
-// 	while(numeroDiPartiDaLeggere!=0){
-// 		fread( buffer,1, sizeof(buffer), fileOriginaleDaCopiare);
-// 		fwrite( buffer, 1, sizeof(buffer), fileDiScritturaMomentanea);
-// 		numeroDiPartiDaLeggere--;
-// 	}
-// 	if(numeroDiPartiDaLeggere==0){
-// 		int numeroDiPartiDaLeggereAncora=dimensioneFile % sizeof(buffer);
-// 		fread( buffer,1, numeroDiPartiDaLeggereAncora, fileOriginaleDaCopiare);
-// 		fwrite( buffer, 1, numeroDiPartiDaLeggereAncora, fileDiScritturaMomentanea);
-// 	}
-	
-	if(copiaFile(fileOriginaleDaCopiare, fileDiScritturaMomentanea, NULL, NULL, 0) > 0);
+/*
+	if(copiaFile(fileOriginaleDaCopiare, fileDiScritturaMomentanea, NULL, NULL, 0) > 0)
 		printf("  %d [%s]Copia completata\n",getpid(),pacchettoApplicativo->tipoOperazione);
 	else
-		printf("  %d [%s] Errore nella copia del file!", getpid(), pacchettoApplicativo->tipoOperazione);
+		printf("  %d [%s] Errore nella copia del file!", getpid(), pacchettoApplicativo->tipoOperazione);*/
 	
 // prende le cose scritte dall'utente e le aggiunge al file temporaneo
 	//svuoto il buffer di invio
