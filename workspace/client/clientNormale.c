@@ -152,11 +152,9 @@ main() {
 				{
 					printf("Modifiche annullate\n");
 					status=0;
-					
 				}
 				else{
 					bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
-				
 					receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 				}	
 			}

@@ -131,6 +131,49 @@ void riceviFile(int *socketConnesso, char *nomeFileDaScrivereConPercorso, struct
 	fclose(fileDaScrivere);
 }
 
+//copia un file in un altro. Se apriFile è > 0 apre i file prima di copiarli, altrimenti il file va aperto prima di richiamare la funzione
+int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *percorsoFileOriginale, char *percorsoFileDiDestinazione, int apriFile) {
+	int dimensioneFile, numeroDiPartiDaLeggere;
+	char bufferTemporaneo[500];
+	
+	if(apriFile > 0) {
+		fileOriginaleDaCopiare=fopen(percorsoFileOriginale, "rb");
+		fileDiDestinazione=fopen(percorsoFileDiDestinazione, "wb");
+		
+		if(fileOriginaleDaCopiare < 0 || fileDiDestinazione < 0) {
+			if(fileOriginaleDaCopiare < 0) {
+				perror("\n");
+				printf("  %d: Errore durante la copia del file \'%s\'\n", getpid(), percorsoFileOriginale);
+			}
+			if(fileDiDestinazione < 0) {
+				perror("\n");
+				printf("  %d: Errore durante la copia del file \'%s\'", getpid(), percorsoFileDiDestinazione);
+			}
+			return -1;
+		}
+	}
+	
+	fseek(fileOriginaleDaCopiare,0L,SEEK_END);
+	dimensioneFile= ftell(fileOriginaleDaCopiare);
+	fseek(fileOriginaleDaCopiare,0L,SEEK_SET);
+		
+// 	copia un file su quello temporaneo
+	numeroDiPartiDaLeggere=dimensioneFile/(sizeof(bufferTemporaneo));
+	
+	while(numeroDiPartiDaLeggere!=0){
+		fread( bufferTemporaneo,1, sizeof(bufferTemporaneo), fileOriginaleDaCopiare);
+		fwrite( bufferTemporaneo, 1, sizeof(bufferTemporaneo), fileDiDestinazione);
+		numeroDiPartiDaLeggere--;
+	}
+	if(numeroDiPartiDaLeggere==0){
+		int numeroDiPartiDaLeggereAncora=dimensioneFile % sizeof(bufferTemporaneo);
+		fread( bufferTemporaneo,1, numeroDiPartiDaLeggereAncora, fileOriginaleDaCopiare);
+		fwrite( bufferTemporaneo, 1, numeroDiPartiDaLeggereAncora, fileDiDestinazione);
+	}
+	
+	return 1;
+}
+
 void svuotaStrutturaListaFile(struct fileApertiDalServer *listaFile) {
 	int i;
 	for(i = 0; i < 10; i++)
