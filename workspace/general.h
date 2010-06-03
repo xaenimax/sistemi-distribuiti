@@ -16,6 +16,8 @@
 #include <sys/stat.h>
 #include <fcntl.h> 
 
+#define NUMERODISERVERREPLICA	3
+
 struct pacchetto {
 	char tipoOperazione[200];
 	char idTransazione[11];

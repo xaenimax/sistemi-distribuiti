@@ -339,6 +339,22 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						dimensioneDatiRicevuti = 0;
 				}
 				
+				else if(strcmp(pacchettoRicevuto.tipoOperazione, "aggiorna file") == 0) {
+					char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoRicevuto.nomeFile)];
+					strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
+					strcat(nomeFileDaScrivereConPercorso, pacchettoRicevuto.nomeFile);
+					strcat(nomeFileDaScrivereConPercorso, "3");
+					
+					printf("  %d: Sto per aggiornare il file: \'%s\'", getpid(), nomeFileDaScrivereConPercorso);
+					
+					bzero(&pacchettoDaInviare, sizeof(struct pacchetto));
+					strcpy(pacchettoDaInviare.tipoOperazione, "aggiorna file, pronto a ricevere");
+					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
+					riceviFile(&connessioneDiServizio, nomeFileDaScrivereConPercorso, &pacchettoRicevuto);
+					
+					dimensioneDatiRicevuti = 0;
+				}
+				
 				//richiesta di uscita
 				else if (strcmp(pacchettoRicevuto.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));

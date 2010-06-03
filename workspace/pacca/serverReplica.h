@@ -1,4 +1,3 @@
-#define NUMERODISERVERREPLICA	3
 #include "../general.h"
 // #include "funzioniServerReplica.h"
 // #include "../funzioniGeneriche.h"
