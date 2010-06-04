@@ -7,8 +7,6 @@ main() {
 
 	//**********************parte relativa al dns
 	char riferimento_servreplica[600];
-// 	char* indirizzo_servreplica = NULL;
-// 	char* porta_servreplica = 0;
 	
 	int socketCL, numeroDatiRicevuti, i, numeroMessaggioInviato, portaDelServer;
 	struct sockaddr_in servaddr;
@@ -21,6 +19,7 @@ main() {
 
 	numeroMessaggioInviato = 1;
 	
+	//La inizializzo io a 111 per farlo entrare nel for
 	errno = 111;
 	
 	//errno = 111 sarebbe 'Errore nell'apertura della connessione: Connection refused'. Ovvero, il server è spento o l'ip non è raggiungibile
@@ -42,18 +41,7 @@ main() {
 		printf("Non risulta nessun server attivo! :(\n");
 		exit(0);
 	}
-   //*****************
 
-// 	memset((void*)&servaddr, 0, sizeof(servaddr)); //azzera il contenuto di servaddr
-// 	
-// 	servaddr.sin_family = AF_INET;
-// 
-// 	servaddr.sin_port = htons(portaDelServer);  //ora è presa dinamicamente
-// 	
-// 	inetPton(&servaddr, indirizzoIpDelServer); //ora è preso dinamicamente
-
-	printf("Errno vale %d", errno);
-	
 	while(1) {
 		
 		bzero(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
