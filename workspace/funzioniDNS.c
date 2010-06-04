@@ -60,13 +60,13 @@ void contattaDNS(char* riferimento_replica) {
 
 		richiesta.numeroMessaggio = 1;  //incremento il contatore di messaggi scambiati
 
-		printf("%d: Avviato client su Indirizzo: %s Porta: %d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
+// 		printf("%d: Avviato client su Indirizzo: %s Porta: %d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
 		
 		strcpy(richiesta.tipoOperazione, "DNS");  //setto il tipo di operazione
 
 		//strcpy(bufferDiInvio, "Richiesto indirizzo di un server replica");
 
-		printf("\nInvio i richiesta al server:\n");
+		printf("\nChiedo un IP al DNS:\n");
 
 				if(sendPacchetto(&socketCl, &richiesta) > 0) //invio pacchetto e incremento contatore msg
 					(richiesta.numeroMessaggio)++;
@@ -80,7 +80,7 @@ void contattaDNS(char* riferimento_replica) {
 		//	exit(-1);
 		//}
 
- 		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
+//  		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 
 		//bzero(recvline, MAXLINE); //svuota array
 
@@ -88,7 +88,7 @@ void contattaDNS(char* riferimento_replica) {
 
  		// FARE //##############################bzero(&richiesta, sizeof(richiesta)); //riazzero il pacchetto per utilizzi successivi
 
- 		printf("Ricevuto Indirizzo Server Replica: %s", risposta.messaggio);
+//  		printf("Ricevuto Indirizzo Server Replica: %s", risposta.messaggio);
 
 //  		riferimento_replica = (char*)malloc(strlen(risposta.messaggio)*sizeof(char));
  		strcpy(riferimento_replica, risposta.messaggio);
@@ -128,7 +128,25 @@ void contattaDNS(char* riferimento_replica) {
 			close(socketCl);
 		//} //end while recv
 
-			printf("\n prova MESSAGGIO	2  %s \n", risposta.messaggio);
+// 			printf("\n prova MESSAGGIO	2  %s \n", risposta.messaggio);
 
 // 	return (char*)riferimento_replica;
 } //end main
+
+void separaIpEportaDaStringa(char *stringaDaConvertire, char *indirizzoIP, int *porta) {
+	char *stringaTok;
+	char *portaInStringa;
+
+	stringaTok = strtok(stringaDaConvertire,":");
+	
+  if(stringaTok != NULL)  {
+		strcpy(indirizzoIP,stringaTok);
+		stringaTok = strtok(NULL,"\n");
+		
+		if(stringaTok != NULL)
+			portaInStringa = stringaTok;
+	}
+
+	*porta = atoi(portaInStringa);
+	
+}

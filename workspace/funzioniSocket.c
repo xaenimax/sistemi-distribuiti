@@ -1,6 +1,6 @@
 #include "general.h"
 #include "funzioniSocket.h"
-
+#include "errno.h"
 //inizializza la struct sockaddr_in
 void inizializza_memset(struct sockaddr_in* servaddr, int porta) {
 	
@@ -41,11 +41,12 @@ void listenSocket(int *socketSucuiFareLaListen, int dimBacklog) {
 }
 
 //effettua la connect sul socket
-void connectSocket(int *socket, struct sockaddr_in *indirizzoSuCuiEffettuareLaConnect) {
+int connectSocket(int *socket, struct sockaddr_in *indirizzoSuCuiEffettuareLaConnect) {
 		if(connect(*socket, (struct sockaddr *) indirizzoSuCuiEffettuareLaConnect, sizeof(*indirizzoSuCuiEffettuareLaConnect)) < 0) {
 			perror("Errore nell'apertura della connessione");
-			exit(-1);
+			return errno;
 		}
+		return 0;
 }
 
 void acceptSocket(int *socketDiConnessione, int *socketDiListen) {
@@ -121,6 +122,7 @@ void inetPton(struct sockaddr_in *indirizzo, char *indirizzoInStringa) {
 }
 
 void assegnaIPaServaddr(char indirizzoIP[16], int porta, struct sockaddr_in *sockAddrSuCuiAssegnareIp) {
+	bzero(sockAddrSuCuiAssegnareIp, sizeof(struct sockaddr_in));
 	sockAddrSuCuiAssegnareIp->sin_family = AF_INET;
 	sockAddrSuCuiAssegnareIp->sin_port = htons(porta);
 	inetPton(sockAddrSuCuiAssegnareIp, indirizzoIP);

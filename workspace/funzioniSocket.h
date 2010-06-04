@@ -8,7 +8,7 @@ void bindSocket(int *socketSuCuiFareBind, struct sockaddr_in* indirizzoDaAssegna
 
 void listenSocket(int *socketSucuiFareLaListen, int dimBacklog);
 
-void connectSocket(int *socket, struct sockaddr_in *indirizzoSuCuiEffettuareLaConnect);
+int connectSocket(int *socket, struct sockaddr_in *indirizzoSuCuiEffettuareLaConnect);
 
 void acceptSocket(int *socketDiConnessione, int *socketDiListen);
 
