@@ -72,13 +72,13 @@ void spedisciFile(int *socketConnesso, FILE *fileDaLeggere, struct pacchetto *pa
 		
 		if(numeroDiPartiCompleteDaInviare > 0) {
 			numeroDiByteLetti = numeroDiByteLetti + fread(pacchettoApplicativo->messaggio, 1, (sizeof(pacchettoApplicativo->messaggio)), fileDaLeggere);
-			printf("  %d: Letti: %ld / %ld byte. N: %d\n", getpid(), numeroDiByteLetti, dimensioneDelFile, numeroDiPartiCompleteDaInviare);
+// 			printf("  %d: Letti: %ld / %ld byte. N: %d\n", getpid(), numeroDiByteLetti, dimensioneDelFile, numeroDiPartiCompleteDaInviare);
 		}
 		
 		if(numeroDiPartiCompleteDaInviare == 0) {
 			int dimensioneUltimaParteDaInviare = dimensioneDelFile % (sizeof(pacchettoApplicativo->messaggio));
 			numeroDiByteLetti = numeroDiByteLetti + fread(pacchettoApplicativo->messaggio, 1, dimensioneUltimaParteDaInviare, fileDaLeggere);
-			printf("  %d: Letti: %ld / %ld byte. N: %d\n", getpid(), numeroDiByteLetti, dimensioneDelFile, numeroDiPartiCompleteDaInviare);
+// 			printf("  %d: Letti: %ld / %ld byte. N: %d\n", getpid(), numeroDiByteLetti, dimensioneDelFile, numeroDiPartiCompleteDaInviare);
 		}
 		
 		sleep(1);
@@ -98,6 +98,7 @@ void spedisciFile(int *socketConnesso, FILE *fileDaLeggere, struct pacchetto *pa
 // 	sendPacchetto(socketConnesso, pacchettoApplicativo);
 }
 
+//Riceve un file spedito con la funzione spedisci file. Prima di richiamare questa funzione bisogna fare in modo che il A avvisi B che vuole spedire un e B risponda che è pronto a ricevere. Dopodichè bisogna fare un'ulteriore receive perchè A comunicherà a B la dimensione del file che per inviare
 void riceviFile(int *socketConnesso, char *nomeFileDaScrivereConPercorso, struct pacchetto *pacchettoApplicativo) {	
 	
 	FILE *fileDaScrivere = fopen(nomeFileDaScrivereConPercorso, "wb");
@@ -112,8 +113,7 @@ void riceviFile(int *socketConnesso, char *nomeFileDaScrivereConPercorso, struct
 		receivePacchetto(socketConnesso, pacchettoApplicativo, sizeof(struct pacchetto), 0);
 // 				receiveData(&socketCl, pacchettoApplicativo.messaggio, sizeof(pacchettoApplicativo.messaggio));
 		
-		printf("[%s]Ricevuta parte numero %d.\n", pacchettoApplicativo->tipoOperazione, numeroDiPartiCompleteDaRicevere);
-		
+// 		printf("  %d: [%s]Ricevuta parte numero %d.\n",getpid(), pacchettoApplicativo->tipoOperazione, numeroDiPartiCompleteDaRicevere);
 		if(numeroDiPartiCompleteDaRicevere != 0) {					
 			numeroDiDatiScritti = numeroDiDatiScritti + fwrite(pacchettoApplicativo->messaggio, 1, (sizeof(pacchettoApplicativo->messaggio)), fileDaScrivere);
 		}

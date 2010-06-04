@@ -183,7 +183,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			fopen(percorsoDestinazione, "r");
 			copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
 			
-			spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire);
+			spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire,IDgenerato);
 			
 			if(copiaFile > 0)
 				remove(percorsoDestinazione);
@@ -231,10 +231,11 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	return (0);
 }
 
-int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAggiornare) {
+//Spedisce il file temporaneo con gli aggiornamenti agli altri server
+int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAggiornare, char* idTransazione) {
 	int socketPerAggiornamenti, i;
 	struct sockaddr_in indirizzoServer[4];
-	struct pacchetto pacchettoApplicativo, pacchettoDaInviare;
+	struct pacchetto pacchettoApplicativo;
 	//mi porto all'inizio del file
 	fseek(fileConAggiornamenti, 0L, SEEK_SET);
 	
@@ -246,25 +247,24 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 	
 	for(i = 0; i < NUMERODISERVERREPLICA-1; i++) {
 		createSocketStream(&socketPerAggiornamenti);
-		printf("   %d: Sto per connettermi all'ip: ", getpid());
-		stampaIpEporta(&indirizzoServer[i]);
+// 		printf("   %d: Sto per connettermi all'ip: ", getpid());
 		connectSocket(&socketPerAggiornamenti, &indirizzoServer[i]);
 		
 		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 		strcpy(pacchettoApplicativo.tipoOperazione, "aggiorna file");
 		strcpy(pacchettoApplicativo.nomeFile, nomeFileDaAggiornare);
+		strcpy(pacchettoApplicativo.idTransazione, idTransazione);
 		
 		sendPacchetto(&socketPerAggiornamenti, &pacchettoApplicativo);
 		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 		receivePacchetto(&socketPerAggiornamenti, &pacchettoApplicativo, sizeof(struct pacchetto));
 		
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "aggiorna file, pronto a ricevere") == 0) {
-			printf("\n  %d: Spedisco il file \'%s\'al server: %d\n", getpid(), pacchettoApplicativo.nomeFile, i)
-			
-			/////TROVATA LA MAGAGNA! QUI MI DIMENTICO DI INSERIRE IL NOME DEL FILE DA LEGGERE E SPEDIRE AL CLIENT
 			
 			spedisciFile(&socketPerAggiornamenti, fileConAggiornamenti, &pacchettoApplicativo);
-			printf("\n  %d: File spedito con successo a %d\n", getpid(), i);
+			printf("  %d: File spedito con successo al server ", getpid());
+			stampaIpEporta(&indirizzoServer[i]);
+			printf("\n");
 		}
 		else
 			printf("  %d: C\'è stato un\'errore durante l\'invio dell\'aggiornamento al server\n", getpid());

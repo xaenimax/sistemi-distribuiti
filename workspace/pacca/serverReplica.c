@@ -340,17 +340,44 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 				}
 				
 				else if(strcmp(pacchettoRicevuto.tipoOperazione, "aggiorna file") == 0) {
-					char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoRicevuto.nomeFile)];
-					strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
-					strcat(nomeFileDaScrivereConPercorso, pacchettoRicevuto.nomeFile);
-					strcat(nomeFileDaScrivereConPercorso, "3");
+					char idTransazione[sizeof(pacchettoRicevuto.idTransazione)];
+					char nomeFileDaAggiornare[sizeof(pacchettoRicevuto.nomeFile)]; //contiene il file che andrà aggiornato
+					char nomeFileConAggiornamenti[sizeof(directoryDeiFile) + sizeof(pacchettoRicevuto.nomeFile)]; //contiene il nome del file temporaneo con gli aggiornamenti
+					FILE *fileDaAggiornare, *fileConAggiornamenti;
 					
-					printf("  %d: Sto per aggiornare il file: \'%s\'", getpid(), nomeFileDaScrivereConPercorso);
+					strcpy(idTransazione, pacchettoRicevuto.idTransazione);
 					
+					strcpy(nomeFileDaAggiornare, directoryDeiFile);
+					strcat(nomeFileDaAggiornare, pacchettoRicevuto.nomeFile);
+					
+					strcpy(nomeFileConAggiornamenti, directoryDeiFile);
+					strcat(nomeFileConAggiornamenti, idTransazione);
+					strcat(nomeFileConAggiornamenti, ".marina");
+					
+					printf("  %d: Sto per aggiornare il file: \'%s\'\n", getpid(), nomeFileDaAggiornare);
+					
+					//avviso il client che sono pronto a ricevere e gli dico anche qual'è il nome del file che deve mandarmi. Serve per la funzione spedisci file che è richiamata nel client
 					bzero(&pacchettoDaInviare, sizeof(struct pacchetto));
 					strcpy(pacchettoDaInviare.tipoOperazione, "aggiorna file, pronto a ricevere");
+					strcpy(pacchettoDaInviare.nomeFile, pacchettoRicevuto.nomeFile);
 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
-					riceviFile(&connessioneDiServizio, nomeFileDaScrivereConPercorso, &pacchettoRicevuto);
+					
+					//attendo la ricezione della dimensione del file che dovrò passare alla funzione riceviFile
+					bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
+					receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(struct pacchetto));
+					riceviFile(&connessioneDiServizio, nomeFileConAggiornamenti, &pacchettoRicevuto);
+					
+					//Ora che ho ricevuto il file con gli aggiornamenti, aggiorno il file originale
+					fileDaAggiornare = fopen(nomeFileDaAggiornare, "a");
+					fileConAggiornamenti = fopen(nomeFileConAggiornamenti, "rb");
+					
+					copiaFile(fileConAggiornamenti, fileDaAggiornare, NULL, NULL, 0);
+					
+					fclose(fileDaAggiornare);
+					fclose(fileConAggiornamenti);
+					
+					if(remove(nomeFileConAggiornamenti) < 0)
+						printf("  %d: Errore durante la rimozione del file \'%s\'\n", getpid(), nomeFileConAggiornamenti);
 					
 					dimensioneDatiRicevuti = 0;
 				}
