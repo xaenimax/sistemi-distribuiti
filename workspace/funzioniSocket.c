@@ -98,8 +98,7 @@ int receivePacchetto(int *socketConnesso, struct pacchetto *pacchettoDaInviare, 
 	numeroDatiRicevuti = recv(*socketConnesso, (void*)pacchettoDaInviare, dimensioneMassimaDelBuffer, 0);
 	if(numeroDatiRicevuti < 0) {
 		printf("%d: ", getpid());
-		perror("errore in accept");
-		exit(-1);
+		perror("errore in receive pacchetto");
 	}
 	
 	return numeroDatiRicevuti;

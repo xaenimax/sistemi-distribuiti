@@ -171,7 +171,7 @@ void mainDelFiglio() {
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoApplicativo.messaggio, "Arrivederci");
-
+					sleep(5);
  					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					numeroDatiRicevuti = 0; //faccio in modo di uscire dal ciclo di attesa di dati da ricevere

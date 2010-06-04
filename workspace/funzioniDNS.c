@@ -66,7 +66,7 @@ void contattaDNS(char* riferimento_replica) {
 
 		//strcpy(bufferDiInvio, "Richiesto indirizzo di un server replica");
 
-		printf("\nChiedo un IP al DNS:\n");
+		printf("\nChiedo un IP al DNS...\n");
 
 				if(sendPacchetto(&socketCl, &richiesta) > 0) //invio pacchetto e incremento contatore msg
 					(richiesta.numeroMessaggio)++;
