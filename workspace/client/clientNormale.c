@@ -30,7 +30,7 @@ main() {
 
    //*****************
 
-		
+	//marina:dovrebbe partire da 0
 	numeroMessaggioInviato = 1;
 	
 	createSocketStream(&socketCL);
@@ -96,6 +96,8 @@ main() {
 		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 		
 		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		//marina: qui va fatto un check sui numeri dei messaggi
+		//marina: if((numeroMaessaggioInviato)==pacchettoApplicativo.numeroMessaggio) fai quello che c'è sotto else fai un rinvio del messaggio di richiesta'
 		
 		//se il server ha trovato il file me lo comunica e comincio a scriverlo
 		if(strcmp(pacchettoApplicativo.tipoOperazione, "leggi file, trovato") == 0) {
@@ -103,7 +105,7 @@ main() {
 			char nomeFileDaScrivereConPercorso[sizeof(cartellaDoveSalvareIfile) + sizeof(pacchettoApplicativo.nomeFile)];
 			strcpy(nomeFileDaScrivereConPercorso, cartellaDoveSalvareIfile);
 			strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
-			
+			//non posso controllare il numero messaggi qui: marina
 			riceviFile(&socketCL, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 		}
 		
@@ -130,13 +132,15 @@ main() {
 				strcpy(pacchettoApplicativo.tipoOperazione,"scrivi file");
 				
 				
-				
+				numeroMessaggioInviato++;
+				pacchettoApplicativo.numeroMessaggio=numeroMessaggioInviato;
 				sendPacchetto(&socketCL, &pacchettoApplicativo);
 				
 				if(strcmp(pacchettoApplicativo.messaggio,"commit")==0)
 				{
 					printf("Modifiche in salvataggio, attendere...");
 					bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+					//marina: altro check del numero di messaggio?
 					receivePacchetto(&socketCL,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 					
 					//se il commit è andato a buon fine

@@ -24,3 +24,4 @@ void closeSocket(int *socketDaChiudere);
 
 void inetPton(struct sockaddr_in *indirizzo, char *indirizzoInStringa);
 
+void assegnaIPaServaddr(char indirizzoIP[16], int porta, struct sockaddr_in *sockAddrSuCuiAssegnareIp);

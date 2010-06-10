@@ -85,6 +85,8 @@ void acceptClientDNS() {
 					//se è stata accettata una connessione normale...
 			if(connessioneNormale != 0) {
 				printf("  %d: Creazione di un figlio di servizio in corso...\n", getpid());
+				
+				//round robin
 				server_scelto = scegli_server(server_scelto);
 				pid = fork();
 			
@@ -140,8 +142,29 @@ void fornisciDNS() {
 	//		}  //end while
 
 			byte_ricvt = receivePacchetto(&connessioneNormale, &richiesta, sizeof(richiesta));
-
-			if(strcmp(richiesta.tipoOperazione, "DNS") == 0) {
+			if((strcmp(richiesta.tipoOperazione,"indirizzi server"))==0){
+				char** lista_degli_indirizzi;
+				char lista_da_inviare[200];
+				int i;
+				
+				lista_degli_indirizzi = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
+				
+				for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
+					lista_degli_indirizzi[i] = malloc(19*sizeof(char));
+				
+				bzero(lista_da_inviare,sizeof(lista_da_inviare));
+				prendi_indirizzi(lista_degli_indirizzi);
+				for(i=0;i<NUMERODISERVERREPLICA-1;i++){
+					strcat(lista_da_inviare,lista_degli_indirizzi[i]);
+				}
+				
+				bzero(&risposta,sizeof(struct pacchetto));
+				strcpy(risposta.messaggio,lista_da_inviare);
+				sendPacchetto(&connessioneNormale,&risposta);
+				
+			}
+			
+			else if(strcmp(richiesta.tipoOperazione, "DNS") == 0) {
 								strcpy(risposta.messaggio, lista_server[server_scelto]);
 
 								sendPacchetto(&connessioneNormale, &risposta);

@@ -185,3 +185,7 @@ void svuotaStrutturaListaFile(struct fileApertiDalServer *listaFile) {
 void stampaIpEporta(struct sockaddr_in *indirizzoIP) {
 		printf("%s:%d", inet_ntoa(indirizzoIP->sin_addr), ntohs(indirizzoIP->sin_port));
 }
+
+int checkMessaggioInviato(struct pacchetto *pacchettoApplicativo){
+		return (pacchettoApplicativo->numeroMessaggio);
+}

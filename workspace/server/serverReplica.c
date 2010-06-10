@@ -1,4 +1,5 @@
 #include "serverReplica.h"
+#include "../funzioniSocket.h"
 
 void mainDelFiglio();
 void mainDelFiglioDiServizio();
@@ -7,8 +8,9 @@ void acceptFiglioDiServizio();
 void interrompi();
 void mainFiglioAgrawala();
 
+
 main( int argc, char *argv[] ) {
-        
+  int numeroMessaggioInviato=0;
 	struct fileApertiDalServer *listaFileAperti;
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
@@ -50,9 +52,10 @@ main( int argc, char *argv[] ) {
 	
 	createSocketStream(&listenNormale);
 	createSocketStream(&listenDiServizio);
-
+	
 	inizializza_memset(&indirizzoNormale, portaRichiesteNormali);
 	inizializza_memset(&indirizzoDiServizio, portaDiServizio);
+	
 	
 	int reuse = 1;
 	setsockopt(listenNormale, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
@@ -63,6 +66,7 @@ main( int argc, char *argv[] ) {
 	
 	listenSocket(&listenNormale, BACKLOG);
 	listenSocket(&listenDiServizio, BACKLOG);
+
 	
 	pid = fork();
 	
@@ -142,8 +146,10 @@ void acceptFiglioDiServizio() {
 	}
 }
 
+
 //Questo main dovrà essere usato per gestire il trasferimento di file
 void mainDelFiglio() {
+	 int numeroMessaggioInviato=2;
 	
 		if(pid == 0) 
 		{
@@ -200,11 +206,14 @@ void mainDelFiglio() {
 						
 						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
 						strcpy(pacchettoApplicativo.messaggio, "File non trovato\n");
-						
+						//marina
+						numeroMessaggioInviato++;
+						pacchettoApplicativo.numeroMessaggio=numeroMessaggioInviato;
 						sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 						
 						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+						//if su numeroMessaggio marina
 					}
 					
 					//Se trovo il file lo spedisco al client.
@@ -212,7 +221,7 @@ void mainDelFiglio() {
 						printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo.tipoOperazione, nomeFileDaLeggere);
 // 						int dimensioneDelFile, numeroDiByteLetti;
 // 						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
-			
+						//marina non va bene non controlla i messaggi
 						spedisciFile(&connessioneNormale, fileDaLeggere, &pacchettoApplicativo);
  						
  						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -233,6 +242,9 @@ void mainDelFiglio() {
 					strcpy(pacchettoApplicativo.nomeFile, nomeFileDaScrivere);
 					
 					//dico al client che sono pronto a ricevere
+					//marina
+					numeroMessaggioInviato++;
+					pacchettoApplicativo.numeroMessaggio=numeroMessaggioInviato;
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -241,7 +253,7 @@ void mainDelFiglio() {
 					char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
 					strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
 					strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
-				
+					//marina altro controllo
 					riceviFile(&connessioneNormale, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 											
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -262,7 +274,8 @@ void mainDelFiglio() {
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");
 					strcpy(pacchettoApplicativo.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: leggi file, lista file, copia file, scrivi file, uscita");
-					
+					numeroMessaggioInviato++;
+					pacchettoApplicativo.numeroMessaggio=numeroMessaggioInviato;
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -278,7 +291,7 @@ void mainDelFiglio() {
 
 //questo main dovrà essere usato per gestire le richieste di servizio.
 void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
-	
+	int numeroMessaggioInviato=2;
 		if(pid == 0) 
 		{
 			int dimensioneDatiRicevuti;
@@ -334,6 +347,8 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						strcpy(pacchettoDaInviare.messaggio, "ok");
 						
 						printf("  %d: Invio la conferma al server %d\n", getpid(), pacchettoRicevuto.timeStamp);
+						numeroMessaggioInviato++;
+						pacchettoDaInviare.numeroMessaggio=numeroMessaggioInviato;
 						sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);	
 						
 						dimensioneDatiRicevuti = 0;
@@ -347,6 +362,8 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					
 					strcpy(pacchettoDaInviare.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoDaInviare.messaggio, "Arrivederci");
+					numeroMessaggioInviato++;
+					pacchettoDaInviare.numeroMessaggio=numeroMessaggioInviato;
 
  					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					
@@ -359,6 +376,8 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					strcpy(pacchettoDaInviare.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: lista file, Uscita");
 					
 // 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
+					numeroMessaggioInviato++;
+					pacchettoDaInviare.numeroMessaggio=numeroMessaggioInviato;
 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					printf("  %d:[%s] Operazione non riconosciuta.\n", getpid(), pacchettoRicevuto.tipoOperazione);
 					
@@ -374,21 +393,66 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 }
 
 void mainFiglioAgrawala() {
+	
 	if(pidFiglioAgrawala == 0) {
+		
+		char** lista_server;
 		
 		struct fileApertiDalServer *listaFile;
 		listaFile = malloc(15*sizeof(struct fileApertiDalServer));
-		int i, socketPerRichiestaConferme[4], confermeRicevute = 0, descrittoreFileFifo;
-		struct sockaddr_in indirizzoServer[4];
+		int i, socketPerRichiestaConferme, confermeRicevute = 0, descrittoreFileFifo;
+		struct sockaddr_in indirizzoServer[4],indirizzoDNS;
 		struct pacchetto pacchettoApplicativo;
 		char percorsoFileFifo[50];
+		
+		//marina
+		
+		
+		lista_server = malloc(5*19*sizeof(char));
+		for(i = 0; i < 5; i++) //ip:porta
+			lista_server[i] = malloc(19*sizeof(char));
 
 		svuotaStrutturaListaFile(listaFile);
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
-		
-		while(1) {
+
+		//marina il messaggio conterrà tutti gli indirizzi ip e le porte
+			char IPDaAssegnare[16];
+			int portaDaAssegnare;
 			
-			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
+			
+			for(i=0;i<NUMERODISERVERREPLICA;i++){
+				//marina da sistemare l'inizializzazione dei server'
+				bzero(&indirizzoServer[i], sizeof(struct sockaddr_in));
+			}
+		
+		printf("   %d, Faccio richiesta al DNS della lista server\n", getpid());
+		createSocketStream(&socketPerRichiestaConferme);
+		bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
+		assegnaIPaServaddr(stringaIndirizzoDNS,PORTADNS,&indirizzoDNS);
+		connectSocket(&socketPerRichiestaConferme,&indirizzoDNS);
+		
+		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+		strcpy(pacchettoApplicativo.tipoOperazione,"indirizzi server");
+		sendPacchetto(&socketPerRichiestaConferme,&pacchettoApplicativo);
+		
+		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+		receivePacchetto(&socketPerRichiestaConferme,&pacchettoApplicativo,sizeof(struct pacchetto));
+		closeSocket(&socketPerRichiestaConferme);
+		
+		
+		for(i=0;i<NUMERODISERVERREPLICA;i++){
+			char *indirizzotok;
+			if(i==0){
+				indirizzotok=strtok(pacchettoApplicativo.messaggio,"\n");
+				
+			}
+			else{
+				indirizzotok=strtok(NULL,"\n");
+			}
+			separaIpEportaDaStringa(indirizzotok,IPDaAssegnare,&portaDaAssegnare);
+			assegnaIPaServaddr(IPDaAssegnare,portaDaAssegnare,&indirizzoServer[i]);
+		}
+		while(1) {
 			
 			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
 			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
@@ -401,25 +465,23 @@ void mainFiglioAgrawala() {
 			printf("   %d: Trovata richiesta di commit. File: \'%s\', i: %d\n", getpid(), listaFile[i].nomeFile, i);
 			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
 			
-			bzero(&indirizzoServer[0], sizeof(struct sockaddr_in));
-			bzero(&indirizzoServer[1], sizeof(struct sockaddr_in));
-// 			bzero(&indirizzoServer[2], sizeof(struct sockaddr_in));
-// 			bzero(&indirizzoServer[3], sizeof(struct sockaddr_in));
-
-			//Questi ip dovranno essere presi dal DNS
-			assegnaIPaServaddr("127.0.0.1", 5001, &indirizzoServer[0]);
-			assegnaIPaServaddr("127.0.0.1", 5002, &indirizzoServer[1]);
-// 			assegnaIPaServaddr("127.0.0.1", 5003, &indirizzoServer[2]);
+		
+			
+			
+			
+				
+		
+			
 			
 			int iDelWhile = 0;
 
 			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
-				createSocketStream(&socketPerRichiestaConferme[1]);
+				createSocketStream(&socketPerRichiestaConferme);
 				printf("   %d: Sto per connettermi all'ip: ", getpid());
 				stampaIpEporta(&indirizzoServer[iDelWhile]);
 				printf("\n");
-				connectSocket(&socketPerRichiestaConferme[1], &indirizzoServer[iDelWhile]);
+				connectSocket(&socketPerRichiestaConferme, &indirizzoServer[iDelWhile]);
 				
 				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 				strcpy(pacchettoApplicativo.nomeFile, listaFile[i].nomeFile);
@@ -427,10 +489,10 @@ void mainFiglioAgrawala() {
 				pacchettoApplicativo.timeStamp = ID_numerico_server;
 				
 				printf("   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
-				sendPacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo);
+				sendPacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo);
 				
 				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-				receivePacchetto(&socketPerRichiestaConferme[1], &pacchettoApplicativo, sizeof(struct pacchetto));
+				receivePacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo, sizeof(struct pacchetto));
 				
 // 				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
 				
@@ -440,7 +502,7 @@ void mainFiglioAgrawala() {
 					confermeRicevute++;
 				}
 				
-				closeSocket(&socketPerRichiestaConferme[1]);
+				closeSocket(&socketPerRichiestaConferme);
 				iDelWhile++;
 			}
 			
