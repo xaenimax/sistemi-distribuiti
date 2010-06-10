@@ -1,5 +1,4 @@
 #include "serverReplica.h"
-#include "../funzioniSocket.h"
 
 void mainDelFiglio();
 void mainDelFiglioDiServizio();
@@ -7,7 +6,6 @@ void acceptFiglioNormale();
 void acceptFiglioDiServizio();
 void interrompi();
 void mainFiglioAgrawala();
-
 
 main( int argc, char *argv[] ) {
   int numeroMessaggioInviato=0;
@@ -56,7 +54,6 @@ main( int argc, char *argv[] ) {
 	inizializza_memset(&indirizzoNormale, portaRichiesteNormali);
 	inizializza_memset(&indirizzoDiServizio, portaDiServizio);
 	
-	
 	int reuse = 1;
 	setsockopt(listenNormale, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
 	setsockopt(listenDiServizio, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
@@ -66,7 +63,6 @@ main( int argc, char *argv[] ) {
 	
 	listenSocket(&listenNormale, BACKLOG);
 	listenSocket(&listenDiServizio, BACKLOG);
-
 	
 	pid = fork();
 	
@@ -146,7 +142,6 @@ void acceptFiglioDiServizio() {
 	}
 }
 
-
 //Questo main dovrà essere usato per gestire il trasferimento di file
 void mainDelFiglio() {
 	 int numeroMessaggioInviato=2;
@@ -177,7 +172,7 @@ void mainDelFiglio() {
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoApplicativo.messaggio, "Arrivederci");
-
+					sleep(5);
  					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					numeroDatiRicevuti = 0; //faccio in modo di uscire dal ciclo di attesa di dati da ricevere
@@ -206,14 +201,11 @@ void mainDelFiglio() {
 						
 						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
 						strcpy(pacchettoApplicativo.messaggio, "File non trovato\n");
-						//marina
-						numeroMessaggioInviato++;
-						pacchettoApplicativo.numeroMessaggio=numeroMessaggioInviato;
+						
 						sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 						
 						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 						numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
-						//if su numeroMessaggio marina
 					}
 					
 					//Se trovo il file lo spedisco al client.
@@ -221,7 +213,7 @@ void mainDelFiglio() {
 						printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo.tipoOperazione, nomeFileDaLeggere);
 // 						int dimensioneDelFile, numeroDiByteLetti;
 // 						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
-						//marina non va bene non controlla i messaggi
+			
 						spedisciFile(&connessioneNormale, fileDaLeggere, &pacchettoApplicativo);
  						
  						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -242,9 +234,6 @@ void mainDelFiglio() {
 					strcpy(pacchettoApplicativo.nomeFile, nomeFileDaScrivere);
 					
 					//dico al client che sono pronto a ricevere
-					//marina
-					numeroMessaggioInviato++;
-					pacchettoApplicativo.numeroMessaggio=numeroMessaggioInviato;
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -253,7 +242,7 @@ void mainDelFiglio() {
 					char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
 					strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
 					strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
-					//marina altro controllo
+				
 					riceviFile(&connessioneNormale, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 											
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -274,8 +263,7 @@ void mainDelFiglio() {
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");
 					strcpy(pacchettoApplicativo.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: leggi file, lista file, copia file, scrivi file, uscita");
-					numeroMessaggioInviato++;
-					pacchettoApplicativo.numeroMessaggio=numeroMessaggioInviato;
+					
 					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -347,11 +335,52 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						strcpy(pacchettoDaInviare.messaggio, "ok");
 						
 						printf("  %d: Invio la conferma al server %d\n", getpid(), pacchettoRicevuto.timeStamp);
-						numeroMessaggioInviato++;
-						pacchettoDaInviare.numeroMessaggio=numeroMessaggioInviato;
 						sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);	
 						
 						dimensioneDatiRicevuti = 0;
+				}
+				
+				else if(strcmp(pacchettoRicevuto.tipoOperazione, "aggiorna file") == 0) {
+					char idTransazione[sizeof(pacchettoRicevuto.idTransazione)];
+					char nomeFileDaAggiornare[sizeof(pacchettoRicevuto.nomeFile)]; //contiene il file che andrà aggiornato
+					char nomeFileConAggiornamenti[sizeof(directoryDeiFile) + sizeof(pacchettoRicevuto.nomeFile)]; //contiene il nome del file temporaneo con gli aggiornamenti
+					FILE *fileDaAggiornare, *fileConAggiornamenti;
+					
+					strcpy(idTransazione, pacchettoRicevuto.idTransazione);
+					
+					strcpy(nomeFileDaAggiornare, directoryDeiFile);
+					strcat(nomeFileDaAggiornare, pacchettoRicevuto.nomeFile);
+					
+					strcpy(nomeFileConAggiornamenti, directoryDeiFile);
+					strcat(nomeFileConAggiornamenti, idTransazione);
+					strcat(nomeFileConAggiornamenti, ".marina");
+					
+					printf("  %d: Sto per aggiornare il file: \'%s\'\n", getpid(), nomeFileDaAggiornare);
+					
+					//avviso il client che sono pronto a ricevere e gli dico anche qual'è il nome del file che deve mandarmi. Serve per la funzione spedisci file che è richiamata nel client
+					bzero(&pacchettoDaInviare, sizeof(struct pacchetto));
+					strcpy(pacchettoDaInviare.tipoOperazione, "aggiorna file, pronto a ricevere");
+					strcpy(pacchettoDaInviare.nomeFile, pacchettoRicevuto.nomeFile);
+					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
+					
+					//attendo la ricezione della dimensione del file che dovrò passare alla funzione riceviFile
+					bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
+					receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(struct pacchetto));
+					riceviFile(&connessioneDiServizio, nomeFileConAggiornamenti, &pacchettoRicevuto);
+					
+					//Ora che ho ricevuto il file con gli aggiornamenti, aggiorno il file originale
+					fileDaAggiornare = fopen(nomeFileDaAggiornare, "a");
+					fileConAggiornamenti = fopen(nomeFileConAggiornamenti, "rb");
+					
+					copiaFile(fileConAggiornamenti, fileDaAggiornare, NULL, NULL, 0);
+					
+					fclose(fileDaAggiornare);
+					fclose(fileConAggiornamenti);
+					
+					if(remove(nomeFileConAggiornamenti) < 0)
+						printf("  %d: Errore durante la rimozione del file \'%s\'\n", getpid(), nomeFileConAggiornamenti);
+					
+					dimensioneDatiRicevuti = 0;
 				}
 				
 				//richiesta di uscita
@@ -362,8 +391,6 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					
 					strcpy(pacchettoDaInviare.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoDaInviare.messaggio, "Arrivederci");
-					numeroMessaggioInviato++;
-					pacchettoDaInviare.numeroMessaggio=numeroMessaggioInviato;
 
  					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					
@@ -376,8 +403,6 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					strcpy(pacchettoDaInviare.messaggio, "Operazione non riconosciuta.\r\n Operazioni permesse: lista file, Uscita");
 					
 // 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
-					numeroMessaggioInviato++;
-					pacchettoDaInviare.numeroMessaggio=numeroMessaggioInviato;
 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					printf("  %d:[%s] Operazione non riconosciuta.\n", getpid(), pacchettoRicevuto.tipoOperazione);
 					
@@ -393,7 +418,6 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 }
 
 void mainFiglioAgrawala() {
-	
 	if(pidFiglioAgrawala == 0) {
 		
 		char** lista_server;
@@ -453,6 +477,8 @@ void mainFiglioAgrawala() {
 			assegnaIPaServaddr(IPDaAssegnare,portaDaAssegnare,&indirizzoServer[i]);
 		}
 		while(1) {
+			
+			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
 			
 			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
 			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {

@@ -58,7 +58,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	
 	//preparazione dei percorsi dei file da utilizzare
 	strcpy(nomeDaSostituire,nomeFileDaSostituire);
-	strcpy(percorsoDestinazione, "fileCondivisi/");
+	strcpy(percorsoDestinazione, "/tmp/");
 	strcpy(nomeFileTemporaneo,IDgenerato);
 	strcat(nomeFileTemporaneo,".marina");
 	strcat(percorsoDestinazione,nomeFileTemporaneo);
@@ -175,28 +175,15 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			
 			printf("  %d: Spedita la conferma al client.\n", getpid());
 			
-// dopo l'ack rendeil fileDiScritturaMomentanea quello fisso
-			
-// 			if(remove(percorsoOrigine)<0)
-// 			{
-// 				printf("  %d [%s]Errore di cancellazione del file originale da sostituire\n",getpid(),pacchettoApplicativo->tipoOperazione);
-// 				perror("");
-// 				return(-1);
-// 			}
 			strcpy(nomeFileTemporaneo,IDgenerato);
 			strcat(nomeFileTemporaneo,".marina");
-		
-// 			if(rename(percorsoDestinazione,percorsoOrigine)<0)
-// 			{
-// 				printf("  %d [%s]Errore nella rinomina del file\n",getpid(),pacchettoApplicativo->tipoOperazione);
-// 				perror("");
-// 				return(-1);
-// 			}
 
 			//Lo chiudo perchè dato che ci stavo scrivendo, il puntatore al file è alla fine e non copierebbe niente nel file originale
 			fclose(fileDiScritturaMomentanea);
 			fopen(percorsoDestinazione, "r");
 			copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
+			
+			spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire,IDgenerato);
 			
 			if(copiaFile > 0)
 				remove(percorsoDestinazione);
@@ -242,4 +229,49 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	
 	//ci vuole il free di tutte le malloc
 	return (0);
+}
+
+//Spedisce il file temporaneo con gli aggiornamenti agli altri server
+int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAggiornare, char* idTransazione) {
+	int socketPerAggiornamenti, i;
+	struct sockaddr_in indirizzoServer[4];
+	struct pacchetto pacchettoApplicativo;
+	//mi porto all'inizio del file
+	fseek(fileConAggiornamenti, 0L, SEEK_SET);
+	
+	bzero(&indirizzoServer[0], sizeof(struct sockaddr_in));
+	bzero(&indirizzoServer[1], sizeof(struct sockaddr_in));
+
+	assegnaIPaServaddr("127.0.0.1", 5001, &indirizzoServer[0]);
+	assegnaIPaServaddr("127.0.0.1", 5002, &indirizzoServer[1]);
+	
+	for(i = 0; i < NUMERODISERVERREPLICA-1; i++) {
+		createSocketStream(&socketPerAggiornamenti);
+// 		printf("   %d: Sto per connettermi all'ip: ", getpid());
+		connectSocket(&socketPerAggiornamenti, &indirizzoServer[i]);
+		
+		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+		strcpy(pacchettoApplicativo.tipoOperazione, "aggiorna file");
+		strcpy(pacchettoApplicativo.nomeFile, nomeFileDaAggiornare);
+		strcpy(pacchettoApplicativo.idTransazione, idTransazione);
+		
+		sendPacchetto(&socketPerAggiornamenti, &pacchettoApplicativo);
+		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+		receivePacchetto(&socketPerAggiornamenti, &pacchettoApplicativo, sizeof(struct pacchetto));
+		
+		if(strcmp(pacchettoApplicativo.tipoOperazione, "aggiorna file, pronto a ricevere") == 0) {
+			
+			spedisciFile(&socketPerAggiornamenti, fileConAggiornamenti, &pacchettoApplicativo);
+			printf("  %d: File spedito con successo al server ", getpid());
+			stampaIpEporta(&indirizzoServer[i]);
+			printf("\n");
+		}
+		else
+			printf("  %d: C\'è stato un\'errore durante l\'invio dell\'aggiornamento al server\n", getpid());
+		
+		closeSocket(&socketPerAggiornamenti);
+	}
+
+	
+	
 }
