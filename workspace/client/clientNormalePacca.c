@@ -23,7 +23,7 @@ main() {
 	nonChiedereTesto = 0; //Se settata a uno evito di chiedere all'utente di inserire il testo. Usata per il reinvio di un pacchetto
 	
 	//La inizializzo io a 111 per farlo entrare nel for
-	errno = 111
+	errno = 111;
 
 	//Stavo facendo in modo che rimando il pacchetto nel caso in cui la receive ci impieghi troppo tempo a rispondere. Devo modificare il codice in modo tale che volta che uso due pacchetti, uno inviato e uno ricevuto perchè non posso permettermi di perdere il pacchetto che invio nel momento in cui l'invio fallisce. Esso attualmente infatti è sovrascritto a bzero prima della receive. Il resto sembra funzionare senza problemi.
 

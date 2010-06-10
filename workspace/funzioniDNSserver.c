@@ -18,7 +18,7 @@ char** inizializza_lista() {
 void prendi_indirizzi(char** lista_indirizzi) {
 
 	
-	  char c[17];  /* indirizzo */
+	  char c[30];  /* indirizzo, 30 era 17 */
 	  FILE *file;
       //static char lista_indirizzi[5][17+1];   // Vettore di 5 stringhe da 17 caratteri
       int i = 0; //indice per scorrere la lista
@@ -34,21 +34,21 @@ void prendi_indirizzi(char** lista_indirizzi) {
 	    //return 1;
 	  }
 	  else {
-	    printf("File LISTA_server correttamente aperto:\n\n");
+// 	    printf("File LISTA_server correttamente aperto:\n\n");
 
-	    while(fgets(c, 17, file)!=NULL) { //preleva indirizzi dal file di testo
+	    while(fgets(c, 30, file)!=NULL) { //preleva indirizzi dal file di testo //30 era 17!!!
 	    	stpcpy (lista_indirizzi[i], c);  //li memorizza in un vettore locale
 	    	i++;
 
 	    }
 
 	    int a = 0;
-	    for(a=0;a<5;a++) { printf("INDIRIZZO %d: %s", a, lista_indirizzi[a]);}
+// 	    for(a=0;a<5;a++) { printf("INDIRIZZO %d: %s", a, lista_indirizzi[a]);}
 
 
 
 
-	    printf("\n\nNow closing file...\n");
+	    printf("%d: Ho letto gli indirizzi dal file senza problemi\n", getpid());
 	    fclose(file);
 	  }
 }

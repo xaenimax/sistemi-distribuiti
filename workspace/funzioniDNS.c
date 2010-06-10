@@ -71,8 +71,6 @@ void contattaDNS(char* riferimento_replica) {
 				if(sendPacchetto(&socketCl, &richiesta) > 0) //invio pacchetto e incremento contatore msg
 					(richiesta.numeroMessaggio)++;
 
-
-
 		/* scrive sul socket di connessione il contenuto di buff */
 		//if (send(socketCl, bufferDiInvio, strlen(bufferDiInvio), 0) < 0) {  //invio la richiesta
 		//	printf("%d: ", getpid());
@@ -85,10 +83,9 @@ void contattaDNS(char* riferimento_replica) {
 		//bzero(recvline, MAXLINE); //svuota array
 
  		byte_ricevuti = receivePacchetto(&socketCl, &risposta, sizeof(risposta), 0);
-
  		// FARE //##############################bzero(&richiesta, sizeof(richiesta)); //riazzero il pacchetto per utilizzi successivi
 
-//  		printf("Ricevuto Indirizzo Server Replica: %s", risposta.messaggio);
+
 
 //  		riferimento_replica = (char*)malloc(strlen(risposta.messaggio)*sizeof(char));
  		strcpy(riferimento_replica, risposta.messaggio);
@@ -133,7 +130,7 @@ void contattaDNS(char* riferimento_replica) {
 // 	return (char*)riferimento_replica;
 } //end main
 
-void separaIpEportaDaStringa(char *stringaDaConvertire, char *indirizzoIP, int *porta) {
+void separaIpEportaDaStringa(char *stringaDaConvertire, char *indirizzoIP, int *porta, int *idServer) {
 	char *stringaTok;
 	char *portaInStringa;
 
@@ -141,10 +138,15 @@ void separaIpEportaDaStringa(char *stringaDaConvertire, char *indirizzoIP, int *
 	
   if(stringaTok != NULL)  {
 		strcpy(indirizzoIP,stringaTok);
-		stringaTok = strtok(NULL,"\n");
+		stringaTok = strtok(NULL,":");
 		
 		if(stringaTok != NULL)
 			portaInStringa = stringaTok;
+
+		stringaTok = strtok(NULL,"\n");
+		
+		if(stringaTok != NULL)
+			*idServer = atoi(stringaTok);
 	}
 
 	*porta = atoi(portaInStringa);

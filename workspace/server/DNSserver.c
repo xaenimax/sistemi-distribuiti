@@ -38,9 +38,9 @@ main() {
 	listenSocket(&listensdDiServizio, BACKLOG);
 	
 	int i;
-	lista_server = malloc(5*19*sizeof(char));
-	for(i = 0; i < 5; i++) 
-		lista_server[i] = malloc(19*sizeof(char));
+	lista_server = malloc(NUMERODISERVERREPLICA*30*sizeof(char));
+	for(i = 0; i < NUMERODISERVERREPLICA; i++) 
+		lista_server[i] = malloc(30*sizeof(char));
 	
 	prendi_indirizzi(lista_server);    //prelievo e memorizzazione indirizzi da file LISTA_SERVER
 
@@ -61,7 +61,7 @@ main() {
 		(void) signal(SIGINT, interrompi); //Gestisce l'interruzione con ctrl-c
 		
 			
-		printf("  %d: Server avviato\n\n", getpid());
+		printf("%d: Server avviato\n", getpid());
 		
 		// -1 sta per aspetto qualasiasi figlio che termina, 0 sta per nessuna opzione, rimango bloccato fino a che non muore qualche figlio.
 		waitpid(-1, &pid, 0);
@@ -147,14 +147,16 @@ void fornisciDNS() {
 				char lista_da_inviare[200];
 				int i;
 				
-				lista_degli_indirizzi = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
+				lista_degli_indirizzi = malloc(NUMERODISERVERREPLICA*30*sizeof(char));
 				
 				for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
-					lista_degli_indirizzi[i] = malloc(19*sizeof(char));
+					lista_degli_indirizzi[i] = malloc(30*sizeof(char));
 				
 				bzero(lista_da_inviare,sizeof(lista_da_inviare));
+				printf("  ");
 				prendi_indirizzi(lista_degli_indirizzi);
-				for(i=0;i<NUMERODISERVERREPLICA-1;i++){
+				for(i=0;i<NUMERODISERVERREPLICA;i++){
+// 					printf("%d: Scrivo %s dentro lista_da_inviare\n", getpid(), lista_degli_indirizzi[i]);
 					strcat(lista_da_inviare,lista_degli_indirizzi[i]);
 				}
 				
@@ -166,7 +168,9 @@ void fornisciDNS() {
 			
 			else if(strcmp(richiesta.tipoOperazione, "DNS") == 0) {
 								strcpy(risposta.messaggio, lista_server[server_scelto]);
-
+	
+								printf("%d: Invio %s al client\n", getpid(), risposta.messaggio);
+								
 								sendPacchetto(&connessioneNormale, &risposta);
 
 								bzero(&richiesta, sizeof(richiesta));

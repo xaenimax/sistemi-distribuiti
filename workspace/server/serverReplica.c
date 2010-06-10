@@ -33,17 +33,12 @@ main( int argc, char *argv[] ) {
 
 	if(argc < 3) {
 // 		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
-		portaDiServizio = SERVICE_PORT;
-	}
-	else
-		portaDiServizio = atoi(argv[2]);
-	
-		if(argc < 4) {
-// 		printf("Porta normale non specificata. Verra' usata la porta %d.\n", SERVICE_PORT);
 		portaRichiesteNormali = NORMAL_PORT;
 	}
 	else
-		portaRichiesteNormali = atoi(argv[3]);
+		portaRichiesteNormali = atoi(argv[2]);
+	
+	portaDiServizio = portaRichiesteNormali + 1000; //Dato che il server DNS manda solo le porte per le richieste normali, la porta di servizio sarà quella normale + 1000. In questo modo, quando agrawala andra' a chiedere le porte al DNS, aggiungera' mille per sapere quale sarà la porta di servizio
 	
 	
 	printf("%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
@@ -420,28 +415,22 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 void mainFiglioAgrawala() {
 	if(pidFiglioAgrawala == 0) {
 		
-		char** lista_server;
-		
 		struct fileApertiDalServer *listaFile;
 		listaFile = malloc(15*sizeof(struct fileApertiDalServer));
-		int i, socketPerRichiestaConferme, confermeRicevute = 0, descrittoreFileFifo;
+		int i, socketPerRichiestaConferme, confermeRicevute = 0, descrittoreFileFifo, portaDaAssegnare, idServer;
 		struct sockaddr_in indirizzoServer[4],indirizzoDNS;
 		struct pacchetto pacchettoApplicativo;
-		char percorsoFileFifo[50];
+		char percorsoFileFifo[50], stringaIndirizzoIP[16];
+		char **IPDaAssegnare;
 		
-		//marina
-		
-		
-		lista_server = malloc(5*19*sizeof(char));
-		for(i = 0; i < 5; i++) //ip:porta
-			lista_server[i] = malloc(19*sizeof(char));
+		IPDaAssegnare = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
+		for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
+			IPDaAssegnare[i] = malloc(19*sizeof(char));
 
 		svuotaStrutturaListaFile(listaFile);
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
 		//marina il messaggio conterrà tutti gli indirizzi ip e le porte
-			char IPDaAssegnare[16];
-			int portaDaAssegnare;
 			
 			
 			for(i=0;i<NUMERODISERVERREPLICA;i++){
@@ -449,7 +438,7 @@ void mainFiglioAgrawala() {
 				bzero(&indirizzoServer[i], sizeof(struct sockaddr_in));
 			}
 		
-		printf("   %d, Faccio richiesta al DNS della lista server\n", getpid());
+		printf("   %d: Chiedo gli IP degli altri server al DNS\n", getpid());
 		createSocketStream(&socketPerRichiestaConferme);
 		bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
 		assegnaIPaServaddr(stringaIndirizzoDNS,PORTADNS,&indirizzoDNS);
@@ -463,19 +452,30 @@ void mainFiglioAgrawala() {
 		receivePacchetto(&socketPerRichiestaConferme,&pacchettoApplicativo,sizeof(struct pacchetto));
 		closeSocket(&socketPerRichiestaConferme);
 		
+		printf("   %d: IP ricevuti!\n", getpid());
 		
+		//Prendo il pacchetto ricevuto e mi salvo i tre indirizzi IP in tre char di indirizzi e 3 array di porte. Sono costretto a fare un for separato solo per questo perchè altrimento la strtok non funziona.
 		for(i=0;i<NUMERODISERVERREPLICA;i++){
-			char *indirizzotok;
-			if(i==0){
+			char *indirizzotok; //se non funziona sposta questa fuori
+			if(i == 0)
 				indirizzotok=strtok(pacchettoApplicativo.messaggio,"\n");
-				
-			}
-			else{
+			else 
 				indirizzotok=strtok(NULL,"\n");
-			}
-			separaIpEportaDaStringa(indirizzotok,IPDaAssegnare,&portaDaAssegnare);
-			assegnaIPaServaddr(IPDaAssegnare,portaDaAssegnare,&indirizzoServer[i]);
+			
+// 			printf("   %d: Faccio la token di %s\n",getpid(), indirizzotok);
+			strcpy(IPDaAssegnare[i], indirizzotok);
 		}
+		
+		for(i=0;i<NUMERODISERVERREPLICA;i++){		
+			separaIpEportaDaStringa(IPDaAssegnare[i],stringaIndirizzoIP,&portaDaAssegnare,&idServer)
+			portaDaAssegnare = portaDaAssegnare + 1000; //+ 1000 perchè devo contattare il server sulla porta di servizio e non quella normale
+			
+			//Ci sono dei problemi nel client, ogni tanto da segmentation fault. Probabilmente è dovuto al fatto che ho modificato la funzione fget del DNS server e la funzione di conversione separaIPblabla. L'id del server mi serve in quanto devo togliere dalla lista di indirizzi ip che deve contattare agrawala quello che ha l'id uguale al mio in quanto non devo contattare me stesso.
+			
+			printf("   %d: IP \'%s\', porta: %d id server: %d\n", getpid(), stringaIndirizzoIP, portaDaAssegnare, idServer);
+			assegnaIPaServaddr(IPDaAssegnare[i],portaDaAssegnare,&indirizzoServer[i]);
+		}
+		
 		while(1) {
 			
 			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
@@ -490,14 +490,6 @@ void mainFiglioAgrawala() {
 			
 			printf("   %d: Trovata richiesta di commit. File: \'%s\', i: %d\n", getpid(), listaFile[i].nomeFile, i);
 			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
-			
-		
-			
-			
-			
-				
-		
-			
 			
 			int iDelWhile = 0;
 

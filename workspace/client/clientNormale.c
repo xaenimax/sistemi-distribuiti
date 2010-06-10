@@ -23,19 +23,20 @@ main() {
 	nonChiedereTesto = 0; //Se settata a uno evito di chiedere all'utente di inserire il testo. Usata per il reinvio di un pacchetto
 	
 	//La inizializzo io a 111 per farlo entrare nel for
-	errno = 111
+	errno = 111;
 
 	//Stavo facendo in modo che rimando il pacchetto nel caso in cui la receive ci impieghi troppo tempo a rispondere. Devo modificare il codice in modo tale che volta che uso due pacchetti, uno inviato e uno ricevuto perchè non posso permettermi di perdere il pacchetto che invio nel momento in cui l'invio fallisce. Esso attualmente infatti è sovrascritto a bzero prima della receive. Il resto sembra funzionare senza problemi.
 
 	//errno = 111 sarebbe 'Errore nell'apertura della connessione: Connection refused'. Ovvero, il server è spento o l'ip non è raggiungibile
 	for(i = 1; errno == 111 && i <= NUMERODISERVERREPLICA; i++) {
+		int idServer;
 		errno = 0;
 		createSocketStream(&socketCL);
 		setsockopt(socketCL, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
 		contattaDNS(riferimento_servreplica);
-		separaIpEportaDaStringa(riferimento_servreplica, indirizzoIpDelServer, &portaDelServer);
+		separaIpEportaDaStringa(riferimento_servreplica, indirizzoIpDelServer, &portaDelServer, &idServer);
 		assegnaIPaServaddr(indirizzoIpDelServer, portaDelServer, &servaddr);
-		printf("Provo a connettermi al server con ip ");
+		printf("Provo a connettermi al server %d con ip ", idServer);
 		stampaIpEporta(&servaddr);
 		printf("\n");
 		connectSocket(&socketCL, &servaddr);

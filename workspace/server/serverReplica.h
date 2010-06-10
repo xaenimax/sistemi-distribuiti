@@ -4,8 +4,8 @@
 // #include "../funzioniGeneriche.h"
 #include "../funzioniGeneriche.h"
 
-#define NORMAL_PORT   5193
-#define SERVICE_PORT	6000
+#define NORMAL_PORT   5000
+#define SERVICE_PORT	6000 //porta normale + 1000
 #define BACKLOG       10
 #define MAXLINE     1024
 #define PORTADNS  	7000
