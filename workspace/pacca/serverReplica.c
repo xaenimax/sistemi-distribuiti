@@ -10,16 +10,26 @@ void mainFiglioAgrawala();
 main( int argc, char *argv[] ) {
 
 	struct fileApertiDalServer *listaFileAperti;
+	FILE *fileDiConfigurazione;
+	char *percorsoFileDiConfigurazione = "configurazioneServer.cfg";
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
 	srand(time(NULL));
 	chiaveMemCondivisa = 48 + (rand()/(int)(((unsigned)RAND_MAX + 1) / 74));
 	
-	
 	idSegmentoMemCond = shmget(chiaveMemCondivisa, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
 	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
 	svuotaStrutturaListaFile(listaFileAperti);
+	
+	fileDiConfigurazione = fopen(percorsoFileDiConfigurazione, "r");
+	
+	if(fileDiConfigurazione == NULL) {
+		printf("%d: Il file di configurazione \'%s\' non esiste. Impossibile avviare il server\n", getpid(), percorsoFileDiConfigurazione);
+		exit(-1);
+	}
+	else
+		leggiFileDiConfigurazione(fileDiConfigurazione);
 	
 	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
   {
