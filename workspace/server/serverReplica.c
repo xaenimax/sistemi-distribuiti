@@ -425,7 +425,6 @@ void mainFiglioAgrawala() {
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
 		chiediTuttiGliIpAlDNS(&indirizzoServer, stringaIndirizzoDNS, PORTADNS, ID_numerico_server);
-		stampaIpEporta(&indirizzoServer[2]);
 		
 		while(1) {
 			
