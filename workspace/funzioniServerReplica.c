@@ -185,7 +185,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			fopen(percorsoDestinazione, "r");
 			copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
 			
-			spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire,IDgenerato);
+			spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire,IDgenerato,idServer);
 			
 			if(copiaFile > 0)
 				remove(percorsoDestinazione);
@@ -240,10 +240,12 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 	struct pacchetto pacchettoApplicativo;
 	//mi porto all'inizio del file
 	fseek(fileConAggiornamenti, 0L, SEEK_SET);
-	
+	printf("IDSERVER : %d", idServer);
 	chiediTuttiGliIpAlDNS(indirizzoServer, stringaIndirizzoDNS, PORTADNS, idServer);
 	
-	for(i = 0; i < NUMERODISERVERREPLICA-1; i++) {
+	for(i = 0; i < NUMERODISERVERREPLICA; i++) {
+		
+		//Se è = 0 vuol dire che in questa posizione ci dovrebbe essere il mio indirizzo. Non devo contattare me stesso per fare agrawala
 		if(indirizzoServer[i].sin_port==0)
 			i++;
 		createSocketStream(&socketPerAggiornamenti);
@@ -263,7 +265,6 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 			strcpy(pacchettoApplicativo.tipoOperazione, "aggiorna file");
 			strcpy(pacchettoApplicativo.nomeFile, nomeFileDaAggiornare);
 			strcpy(pacchettoApplicativo.idTransazione, idTransazione);
-			
 			sendPacchetto(&socketPerAggiornamenti, &pacchettoApplicativo);
 			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
 			receivePacchetto(&socketPerAggiornamenti, &pacchettoApplicativo, sizeof(struct pacchetto));
@@ -283,6 +284,8 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 	}
 }
 
+
+//Chiede al DNS tutti gli IP e restituisce un sockaddr_in in cui salva tutti gli indirizzi ESCLUSO quello dell'idNumericoServer che fa la richiesta
 void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta) {
 		char **IPDaAssegnare, stringaIndirizzoIP[19];
 		int socketPerRichiestaLista, i, portaDaAssegnare, idServer;
