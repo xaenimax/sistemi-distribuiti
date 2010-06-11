@@ -8,6 +8,8 @@
 #include <string.h>
 //Effettua la "dir" nella cartella del filesystem distribuito e la invia al client connesso al socket
 
+void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta);
+
 void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	int numeroDiFileTrovati = 0;
 	int i;
@@ -37,7 +39,7 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
 
-int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond){
+int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond, int idServer){
 	
 	printf("  %d [%s]Creazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
@@ -232,18 +234,14 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 }
 
 //Spedisce il file temporaneo con gli aggiornamenti agli altri server
-int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAggiornare, char* idTransazione) {
+int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAggiornare, char* idTransazione, int idServer) {
 	int socketPerAggiornamenti, i;
-	struct sockaddr_in indirizzoServer[4];
+	struct sockaddr_in indirizzoServer[NUMERODISERVERREPLICA];
 	struct pacchetto pacchettoApplicativo;
 	//mi porto all'inizio del file
 	fseek(fileConAggiornamenti, 0L, SEEK_SET);
 	
-	bzero(&indirizzoServer[0], sizeof(struct sockaddr_in));
-	bzero(&indirizzoServer[1], sizeof(struct sockaddr_in));
-
-	assegnaIPaServaddr("127.0.0.1", 5001, &indirizzoServer[0]);
-	assegnaIPaServaddr("127.0.0.1", 5002, &indirizzoServer[1]);
+	chiediTuttiGliIpAlDNS(indirizzoServer, stringaIndirizzoDNS, PORTADNS, idServer);
 	
 	for(i = 0; i < NUMERODISERVERREPLICA-1; i++) {
 		createSocketStream(&socketPerAggiornamenti);
@@ -273,7 +271,7 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 	}
 }
 
-void chiediTuttiGliIpAlDNS(struct sockaddr_in **arrayDoveSalvareIndirizziDeiServer, char *stringaIndirizzoDNS, int portaDNS, int idNumericoServerCheFaLaRichiesta) {
+void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta) {
 		char **IPDaAssegnare, stringaIndirizzoIP[19];
 		int socketPerRichiestaLista, i, portaDaAssegnare, idServer;
 		struct pacchetto pacchettoApplicativo;
@@ -290,7 +288,7 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in **arrayDoveSalvareIndirizziDeiServ
 		printf("   %d: Chiedo gli IP degli altri server al DNS\n", getpid());
 		createSocketStream(&socketPerRichiestaLista);
 		bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
-		assegnaIPaServaddr(stringaIndirizzoDNS,portaDNS,&indirizzoDNS);
+		assegnaIPaServaddr(indirizzoDNSinStringa,portaDNS,&indirizzoDNS);
 		connectSocket(&socketPerRichiestaLista,&indirizzoDNS);
 		
 		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
@@ -315,14 +313,15 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in **arrayDoveSalvareIndirizziDeiServ
 			strcpy(IPDaAssegnare[i], indirizzotok);
 		}
 		
-		for(i=0;i<NUMERODISERVERREPLICA;i++){		
+		for(i=0;i<NUMERODISERVERREPLICA;i++){
 			separaIpEportaDaStringa(IPDaAssegnare[i],stringaIndirizzoIP,&portaDaAssegnare,&idServer);
 			portaDaAssegnare = portaDaAssegnare + 1000; //+ 1000 perchè devo contattare il server sulla porta di servizio e non quella normale
 // 			printf("   %d: IP \'%s\', porta: %d id server: %d\n", getpid(), stringaIndirizzoIP, portaDaAssegnare, idServer);
 			
 			//se è diverso assegno l'ip alla servaddr. SE è uguale allora è il mio ip e non mi interessa contattare me stesso
-			if(idServer != idNumericoServerCheFaLaRichiesta) printf("");
-				assegnaIPaServaddr(IPDaAssegnare[i],portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
+			if(idServer != idNumericoServerCheFaLaRichiesta) {
+				assegnaIPaServaddr(stringaIndirizzoIP,portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
+			}
 		}
 	
 	

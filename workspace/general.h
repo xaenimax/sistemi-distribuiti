@@ -18,6 +18,10 @@
 #include <errno.h>
 
 #define NUMERODISERVERREPLICA	3
+#define PORTADNS  	7000
+#define stringaIndirizzoDNS	"127.0.0.1"
+
+// char stringaIndirizzoDNS[]="127.0.0.1";
 
 struct pacchetto {
 	char tipoOperazione[200];
