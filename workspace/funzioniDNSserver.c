@@ -37,6 +37,7 @@ void prendi_indirizzi(char** lista_indirizzi) {
 // 	    printf("File LISTA_server correttamente aperto:\n\n");
 
 	    while(fgets(c, 30, file)!=NULL) { //preleva indirizzi dal file di testo //30 era 17!!!
+// 				printf("Scrivo %s nel vettore\n", c);
 	    	stpcpy (lista_indirizzi[i], c);  //li memorizza in un vettore locale
 	    	i++;
 
@@ -54,8 +55,8 @@ void prendi_indirizzi(char** lista_indirizzi) {
 }
 
 //------------------------------avanzamento circolare server---------
-int scegli_server(int server_scelto) {     //genera circolarmente numeri da 1 a 4
-	if (server_scelto == 4) {server_scelto = 0;}
+int scegli_server(int server_scelto) {     //genera circolarmente numeri da 1 a NUMERODISERVERREPLICA
+	if (server_scelto == NUMERODISERVERREPLICA-1) {server_scelto = 0;}
 	else ++server_scelto;
 	return server_scelto;
 }

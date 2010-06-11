@@ -45,7 +45,7 @@ main() {
 	prendi_indirizzi(lista_server);    //prelievo e memorizzazione indirizzi da file LISTA_SERVER
 
 	//printf("prova funzioni ok %s", lista_server[4]);
-
+	
 	//--------------------------------------------------------
 
 
@@ -142,7 +142,11 @@ void fornisciDNS() {
 	//		}  //end while
 
 			byte_ricvt = receivePacchetto(&connessioneNormale, &richiesta, sizeof(richiesta));
+			
+// 			printf("  %d: Operazione ricevuta: %s, messaggio: %s", getpid(), richiesta.tipoOperazione, richiesta.messaggio);
+			
 			if((strcmp(richiesta.tipoOperazione,"indirizzi server"))==0){
+				printf("  %d: Invio la lista degli indirizzi\n", getpid());
 				char** lista_degli_indirizzi;
 				char lista_da_inviare[200];
 				int i;
@@ -167,14 +171,12 @@ void fornisciDNS() {
 			}
 			
 			else if(strcmp(richiesta.tipoOperazione, "DNS") == 0) {
-								strcpy(risposta.messaggio, lista_server[server_scelto]);
-	
-								printf("%d: Invio %s al client\n", getpid(), risposta.messaggio);
-								
-								sendPacchetto(&connessioneNormale, &risposta);
-
-								bzero(&richiesta, sizeof(richiesta));
-							}
+				
+				strcpy(risposta.messaggio, lista_server[server_scelto]);
+				printf("%d: Invio l'IP %s\n", getpid(), risposta.messaggio);
+				sendPacchetto(&connessioneNormale, &risposta);
+				bzero(&richiesta, sizeof(richiesta));
+			}
 			else printf("\n * * * errore - richiesta sconosciuta * * * \n ");
 
 

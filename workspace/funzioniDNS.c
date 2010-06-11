@@ -41,8 +41,8 @@ void contattaDNS(char* riferimento_replica) {
 		
 		memset((void*)&servaddr, 0, sizeof(servaddr)); //azzera il contenuto di servaddr
 
-		bzero(&richiesta, sizeof(richiesta)); //azzero il contenuto dei pacchetti
-		bzero(&risposta, sizeof(risposta));
+		bzero(&richiesta, sizeof(struct pacchetto)); //azzero il contenuto dei pacchetti
+		bzero(&risposta, sizeof(struct pacchetto));
 		
 		servaddr.sin_family = AF_INET;
 		servaddr.sin_port = htons(SERV_PORT_DNS);
@@ -85,7 +85,7 @@ void contattaDNS(char* riferimento_replica) {
  		byte_ricevuti = receivePacchetto(&socketCl, &risposta, sizeof(risposta), 0);
  		// FARE //##############################bzero(&richiesta, sizeof(richiesta)); //riazzero il pacchetto per utilizzi successivi
 
-
+// 		printf("Ho ricevuto dal DNS: %s\n", risposta.messaggio);
 
 //  		riferimento_replica = (char*)malloc(strlen(risposta.messaggio)*sizeof(char));
  		strcpy(riferimento_replica, risposta.messaggio);

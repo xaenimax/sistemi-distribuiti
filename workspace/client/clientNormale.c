@@ -8,7 +8,7 @@ main() {
 	//**********************parte relativa al dns
 	char riferimento_servreplica[600];
 	
-	int socketCL, numeroDatiRicevuti, i, numeroMessaggioInviato, portaDelServer, nonChiedereTesto;
+	int socketCL, numeroDatiRicevuti, i, numeroMessaggioInviato, portaDelServer;
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
 	struct timeval tempoDiAttesa;
@@ -19,18 +19,15 @@ main() {
 	indirizzoIpDelServer = malloc(16*sizeof(char));
 
 	numeroMessaggioInviato = 1;
-	tempoDiAttesa.tv_sec = 1; //setto la costante per il tempo di attesa della receive a un secondo
-	nonChiedereTesto = 0; //Se settata a uno evito di chiedere all'utente di inserire il testo. Usata per il reinvio di un pacchetto
+	tempoDiAttesa.tv_sec = 30; //setto la costante per il tempo di attesa della receive a un secondo
 	
 	//La inizializzo io a 111 per farlo entrare nel for
 	errno = 111;
 
-	//Stavo facendo in modo che rimando il pacchetto nel caso in cui la receive ci impieghi troppo tempo a rispondere. Devo modificare il codice in modo tale che volta che uso due pacchetti, uno inviato e uno ricevuto perchè non posso permettermi di perdere il pacchetto che invio nel momento in cui l'invio fallisce. Esso attualmente infatti è sovrascritto a bzero prima della receive. Il resto sembra funzionare senza problemi.
-
 	//errno = 111 sarebbe 'Errore nell'apertura della connessione: Connection refused'. Ovvero, il server è spento o l'ip non è raggiungibile
 	for(i = 1; errno == 111 && i <= NUMERODISERVERREPLICA; i++) {
 		int idServer;
-		errno = 0;
+		errno = 0; //per evitare che mi chiuda il socket
 		createSocketStream(&socketCL);
 		setsockopt(socketCL, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
 		contattaDNS(riferimento_servreplica);
@@ -52,16 +49,14 @@ main() {
 	}
 
 	while(1) {
-		if(nonChiedereTesto==0) {
-			bzero(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
-			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-			printf("Operazione da eseguire:\n");
-			inserisciTesto(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
-			strcpy(pacchettoApplicativo.tipoOperazione, stringaInseritaDallutente);
-			pacchettoApplicativo.numeroMessaggio = numeroMessaggioInviato;
-		}
-		
-		if((strncmp("leggi file", stringaInseritaDallutente, 11) == 0)||(strncmp("scrivi file",stringaInseritaDallutente,11)==0) && nonChiedereTesto == 0) {
+		bzero(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		printf("Operazione da eseguire:\n");
+		inserisciTesto(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
+		strcpy(pacchettoApplicativo.tipoOperazione, stringaInseritaDallutente);
+		pacchettoApplicativo.numeroMessaggio = numeroMessaggioInviato;
+
+		if((strncmp("leggi file", stringaInseritaDallutente, 11) == 0)||(strncmp("scrivi file",stringaInseritaDallutente,11)==0)) {
 			printf("Inserire il nome del file che si intende leggere:\n");
 			bzero(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 			inserisciTesto(&stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
@@ -93,27 +88,18 @@ main() {
 		
 		printf("Invio i dati...\n");
 		
-		if(sendPacchetto(&socketCL, &pacchettoApplicativo) > 0 && nonChiedereTesto == 0)
+		if(sendPacchetto(&socketCL, &pacchettoApplicativo) > 0)
 			numeroMessaggioInviato++;
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
 		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 		
 		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		nonChiedereTesto = 0; //La setto a zero perchè se la receive va a buon fine devo smettere di ciclare e di non chiedere il testo all'utente
 		if(errno == 11) {
 			//< 5 vuol dire che ho provato 5 volte a rispedire il pacchetto a distanza di 1, 2,3,4,5 secondi
-			if(tempoDiAttesa.tv_sec < 5) {
-				printf("Il server sembra non rispondere, riprovo a spedire il pacchetto\n");
-				tempoDiAttesa.tv_sec = tempoDiAttesa.tv_sec + 1;
-				setsockopt(socketCL, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
-				nonChiedereTesto = 1;
-			}
-			else {
-				printf("Il server non risponde da 9 secondi. Chiudo la connessione\n");
-				closeSocket(&socketCL);
-				exit(0);
-			}
+			printf("Il server non risponde da 9 secondi. Chiudo la connessione\n");
+			closeSocket(&socketCL);
+			exit(0);
 		}
 		
 		//se il server ha trovato il file me lo comunica e comincio a scriverlo

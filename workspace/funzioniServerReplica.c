@@ -271,7 +271,59 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 		
 		closeSocket(&socketPerAggiornamenti);
 	}
+}
 
+void chiediTuttiGliIpAlDNS(struct sockaddr_in **arrayDoveSalvareIndirizziDeiServer, char *stringaIndirizzoDNS, int portaDNS, int idNumericoServerCheFaLaRichiesta) {
+		char **IPDaAssegnare, stringaIndirizzoIP[19];
+		int socketPerRichiestaLista, i, portaDaAssegnare, idServer;
+		struct pacchetto pacchettoApplicativo;
+		struct sockaddr_in indirizzoDNS;
+		
+		IPDaAssegnare = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
+		for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
+			IPDaAssegnare[i] = malloc(19*sizeof(char));
+		
+		for(i=0;i<NUMERODISERVERREPLICA;i++){
+			bzero(&arrayDoveSalvareIndirizziDeiServer[i], sizeof(struct sockaddr_in));
+		}
+		
+		printf("   %d: Chiedo gli IP degli altri server al DNS\n", getpid());
+		createSocketStream(&socketPerRichiestaLista);
+		bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
+		assegnaIPaServaddr(stringaIndirizzoDNS,portaDNS,&indirizzoDNS);
+		connectSocket(&socketPerRichiestaLista,&indirizzoDNS);
+		
+		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+		strcpy(pacchettoApplicativo.tipoOperazione,"indirizzi server");
+		sendPacchetto(&socketPerRichiestaLista,&pacchettoApplicativo);
+		
+		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+		receivePacchetto(&socketPerRichiestaLista,&pacchettoApplicativo,sizeof(struct pacchetto));
+		closeSocket(&socketPerRichiestaLista);
+		
+		printf("   %d: IP ricevuti!\n", getpid());
+		
+		//Prendo il pacchetto ricevuto e mi salvo i tre indirizzi IP in tre char di indirizzi e 3 array di porte. Sono costretto a fare un for separato solo per questo perchè altrimento la strtok non funziona.
+		for(i=0;i<NUMERODISERVERREPLICA;i++){
+			char *indirizzotok; //se non funziona sposta questa fuori
+			if(i == 0)
+				indirizzotok=strtok(pacchettoApplicativo.messaggio,"\n");
+			else 
+				indirizzotok=strtok(NULL,"\n");
+			
+// 			printf("   %d: Faccio la token di %s\n",getpid(), indirizzotok);
+			strcpy(IPDaAssegnare[i], indirizzotok);
+		}
+		
+		for(i=0;i<NUMERODISERVERREPLICA;i++){		
+			separaIpEportaDaStringa(IPDaAssegnare[i],stringaIndirizzoIP,&portaDaAssegnare,&idServer);
+			portaDaAssegnare = portaDaAssegnare + 1000; //+ 1000 perchè devo contattare il server sulla porta di servizio e non quella normale
+// 			printf("   %d: IP \'%s\', porta: %d id server: %d\n", getpid(), stringaIndirizzoIP, portaDaAssegnare, idServer);
+			
+			//se è diverso assegno l'ip alla servaddr. SE è uguale allora è il mio ip e non mi interessa contattare me stesso
+			if(idServer != idNumericoServerCheFaLaRichiesta) printf("");
+				assegnaIPaServaddr(IPDaAssegnare[i],portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
+		}
 	
 	
 }

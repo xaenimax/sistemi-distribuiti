@@ -421,61 +421,12 @@ void mainFiglioAgrawala() {
 		struct sockaddr_in indirizzoServer[4],indirizzoDNS;
 		struct pacchetto pacchettoApplicativo;
 		char percorsoFileFifo[50], stringaIndirizzoIP[16];
-		char **IPDaAssegnare;
-		
-		IPDaAssegnare = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
-		for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
-			IPDaAssegnare[i] = malloc(19*sizeof(char));
 
 		svuotaStrutturaListaFile(listaFile);
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
-		//marina il messaggio conterrà tutti gli indirizzi ip e le porte
-			
-			
-			for(i=0;i<NUMERODISERVERREPLICA;i++){
-				//marina da sistemare l'inizializzazione dei server'
-				bzero(&indirizzoServer[i], sizeof(struct sockaddr_in));
-			}
-		
-		printf("   %d: Chiedo gli IP degli altri server al DNS\n", getpid());
-		createSocketStream(&socketPerRichiestaConferme);
-		bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
-		assegnaIPaServaddr(stringaIndirizzoDNS,PORTADNS,&indirizzoDNS);
-		connectSocket(&socketPerRichiestaConferme,&indirizzoDNS);
-		
-		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
-		strcpy(pacchettoApplicativo.tipoOperazione,"indirizzi server");
-		sendPacchetto(&socketPerRichiestaConferme,&pacchettoApplicativo);
-		
-		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
-		receivePacchetto(&socketPerRichiestaConferme,&pacchettoApplicativo,sizeof(struct pacchetto));
-		closeSocket(&socketPerRichiestaConferme);
-		
-		printf("   %d: IP ricevuti!\n", getpid());
-		
-		//Prendo il pacchetto ricevuto e mi salvo i tre indirizzi IP in tre char di indirizzi e 3 array di porte. Sono costretto a fare un for separato solo per questo perchè altrimento la strtok non funziona.
-		for(i=0;i<NUMERODISERVERREPLICA;i++){
-			char *indirizzotok; //se non funziona sposta questa fuori
-			if(i == 0)
-				indirizzotok=strtok(pacchettoApplicativo.messaggio,"\n");
-			else 
-				indirizzotok=strtok(NULL,"\n");
-			
-// 			printf("   %d: Faccio la token di %s\n",getpid(), indirizzotok);
-			strcpy(IPDaAssegnare[i], indirizzotok);
-		}
-		
-		for(i=0;i<NUMERODISERVERREPLICA;i++){		
-			separaIpEportaDaStringa(IPDaAssegnare[i],stringaIndirizzoIP,&portaDaAssegnare,&idServer)
-			portaDaAssegnare = portaDaAssegnare + 1000; //+ 1000 perchè devo contattare il server sulla porta di servizio e non quella normale
-			
-			//Ci sono dei problemi nel client, ogni tanto da segmentation fault. Probabilmente è dovuto al fatto che ho modificato la funzione fget del DNS server e la funzione di conversione separaIPblabla. L'id del server mi serve in quanto devo togliere dalla lista di indirizzi ip che deve contattare agrawala quello che ha l'id uguale al mio in quanto non devo contattare me stesso.
-			
-			printf("   %d: IP \'%s\', porta: %d id server: %d\n", getpid(), stringaIndirizzoIP, portaDaAssegnare, idServer);
-			assegnaIPaServaddr(IPDaAssegnare[i],portaDaAssegnare,&indirizzoServer[i]);
-		}
-		
+		chiediTuttiGliIpAlDNS(&indirizzoServer, stringaIndirizzoDNS, PORTADNS, ID_numerico_server);
+		stampaIpEporta(&indirizzoServer[0]);
 		while(1) {
 			
 			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
@@ -495,33 +446,49 @@ void mainFiglioAgrawala() {
 
 			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
+				//Vuol dire che l'indirizzo che dovrebbe stare in questa posizione è il mio. Non devo contattare me stesso quindi vado avanti. E' uguale a 0 perchè precedentemente evito di settare questo indirizzo se l'id del server con questo ip è uguale al mio
+				if(indirizzoServer[iDelWhile].sin_port == 0);
+ 					iDelWhile++;
+				
 				createSocketStream(&socketPerRichiestaConferme);
 				printf("   %d: Sto per connettermi all'ip: ", getpid());
 				stampaIpEporta(&indirizzoServer[iDelWhile]);
 				printf("\n");
 				connectSocket(&socketPerRichiestaConferme, &indirizzoServer[iDelWhile]);
 				
-				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-				strcpy(pacchettoApplicativo.nomeFile, listaFile[i].nomeFile);
-				strcpy(pacchettoApplicativo.tipoOperazione, "chiedo di fare commit");
-				pacchettoApplicativo.timeStamp = ID_numerico_server;
-				
-				printf("   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
-				sendPacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo);
-				
-				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-				receivePacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo, sizeof(struct pacchetto));
-				
-// 				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
-				
-				//se il server mi da la conferma che posso fare il commit mi segno la sua conferma
-				if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
-					printf("   %d:[%s] Ricevuta conferma dal server %d\n", getpid(), pacchettoApplicativo.tipoOperazione, iDelWhile);
+				//Vuol dire che il server non è attivo
+				if(errno == 111) {
+					printf("   %d: Il server con IP ", getpid());
+					stampaIpEporta(&indirizzoServer[iDelWhile]);
+					printf (" sembra non essere attivo.\n");
+					
+					closeSocket(&socketPerRichiestaConferme);
 					confermeRicevute++;
 				}
 				
-				closeSocket(&socketPerRichiestaConferme);
-				iDelWhile++;
+				else {
+					bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+					strcpy(pacchettoApplicativo.nomeFile, listaFile[i].nomeFile);
+					strcpy(pacchettoApplicativo.tipoOperazione, "chiedo di fare commit");
+					pacchettoApplicativo.timeStamp = ID_numerico_server;
+					
+					printf("   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
+					sendPacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo);
+					
+					bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+					receivePacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo, sizeof(struct pacchetto));
+					
+	// 				printf("   %d, DEBUG: [%s]: Ricevuto: %s\n",getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.messaggio);
+					
+					//se il server mi da la conferma che posso fare il commit mi segno la sua conferma
+					if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
+						printf("   %d:[%s] Ricevuta conferma dal server %d\n", getpid(), pacchettoApplicativo.tipoOperazione, iDelWhile);
+						confermeRicevute++;
+					}
+					
+					closeSocket(&socketPerRichiestaConferme);
+					iDelWhile++;
+				}
 			}
 			
 			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme!\n", getpid());
