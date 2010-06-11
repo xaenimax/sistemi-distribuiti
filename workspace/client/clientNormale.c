@@ -8,7 +8,7 @@ main() {
 	//**********************parte relativa al dns
 	char riferimento_servreplica[600];
 	
-	int socketCL, numeroDatiRicevuti, i, numeroMessaggioInviato, portaDelServer;
+	int socketCL, numeroDatiRicevuti, i, portaDelServer;
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
 	struct timeval tempoDiAttesa;
@@ -18,7 +18,6 @@ main() {
 	
 	indirizzoIpDelServer = malloc(16*sizeof(char));
 
-	numeroMessaggioInviato = 1;
 	tempoDiAttesa.tv_sec = 30; //setto la costante per il tempo di attesa della receive a un secondo
 	
 	//La inizializzo io a 111 per farlo entrare nel for
@@ -54,7 +53,6 @@ main() {
 		printf("Operazione da eseguire:\n");
 		inserisciTesto(stringaInseritaDallutente, sizeof(stringaInseritaDallutente));
 		strcpy(pacchettoApplicativo.tipoOperazione, stringaInseritaDallutente);
-		pacchettoApplicativo.numeroMessaggio = numeroMessaggioInviato;
 
 		if((strncmp("leggi file", stringaInseritaDallutente, 11) == 0)||(strncmp("scrivi file",stringaInseritaDallutente,11)==0)) {
 			printf("Inserire il nome del file che si intende leggere:\n");
@@ -88,8 +86,7 @@ main() {
 		
 		printf("Invio i dati...\n");
 		
-		if(sendPacchetto(&socketCL, &pacchettoApplicativo) > 0)
-			numeroMessaggioInviato++;
+		sendPacchetto(&socketCL, &pacchettoApplicativo);
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
 		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
@@ -134,9 +131,7 @@ main() {
 				
 				strcpy(pacchettoApplicativo.tipoOperazione,"scrivi file");
 				
-				
-				
-				sendPacchetto(&socketCL, &pacchettoApplicativo);
+				sendPacchetto(&socketCL, &pacchettoApplicativo);				
 				
 				if(strcmp(pacchettoApplicativo.messaggio,"commit")==0)
 				{

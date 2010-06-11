@@ -27,7 +27,6 @@ struct pacchetto {
 	char tipoOperazione[200];
 	char idTransazione[11];
 	unsigned char messaggio[600];
-	int numeroMessaggio;
 	char nomeFile[350];
 	int timeStamp;	
 };

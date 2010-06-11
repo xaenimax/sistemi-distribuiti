@@ -58,8 +58,6 @@ void contattaDNS(char* riferimento_replica) {
 			
 		getsockname(socketCl, (struct sockaddr *) &servaddr, &lunghezzaAddr); //se voglio sapere chi mi manda la richiesta..
 
-		richiesta.numeroMessaggio = 1;  //incremento il contatore di messaggi scambiati
-
 // 		printf("%d: Avviato client su Indirizzo: %s Porta: %d.\n", getpid(), (char*)inet_ntoa(servaddr.sin_addr), ntohs(servaddr.sin_port));
 		
 		strcpy(richiesta.tipoOperazione, "DNS");  //setto il tipo di operazione
@@ -68,8 +66,8 @@ void contattaDNS(char* riferimento_replica) {
 
 		printf("\nChiedo un IP al DNS...\n");
 
-				if(sendPacchetto(&socketCl, &richiesta) > 0) //invio pacchetto e incremento contatore msg
-					(richiesta.numeroMessaggio)++;
+				sendPacchetto(&socketCl, &richiesta); //invio pacchetto e incremento contatore msg
+			
 
 		/* scrive sul socket di connessione il contenuto di buff */
 		//if (send(socketCl, bufferDiInvio, strlen(bufferDiInvio), 0) < 0) {  //invio la richiesta

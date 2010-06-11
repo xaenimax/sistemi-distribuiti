@@ -244,30 +244,42 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 	chiediTuttiGliIpAlDNS(indirizzoServer, stringaIndirizzoDNS, PORTADNS, idServer);
 	
 	for(i = 0; i < NUMERODISERVERREPLICA-1; i++) {
+		if(indirizzoServer[i].sin_port==0)
+			i++;
 		createSocketStream(&socketPerAggiornamenti);
 // 		printf("   %d: Sto per connettermi all'ip: ", getpid());
 		connectSocket(&socketPerAggiornamenti, &indirizzoServer[i]);
 		
-		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-		strcpy(pacchettoApplicativo.tipoOperazione, "aggiorna file");
-		strcpy(pacchettoApplicativo.nomeFile, nomeFileDaAggiornare);
-		strcpy(pacchettoApplicativo.idTransazione, idTransazione);
+		if(errno==111){
+			printf("  %d: Non riesco a mandare l'aggiornamento al server",getpid());
+			stampaIpEporta(&indirizzoServer[i]);
+			printf("\n");
+			
+			closeSocket(&socketPerAggiornamenti);
+		}
+		else{
 		
-		sendPacchetto(&socketPerAggiornamenti, &pacchettoApplicativo);
-		bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
-		receivePacchetto(&socketPerAggiornamenti, &pacchettoApplicativo, sizeof(struct pacchetto));
-		
-		if(strcmp(pacchettoApplicativo.tipoOperazione, "aggiorna file, pronto a ricevere") == 0) {
+			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+			strcpy(pacchettoApplicativo.tipoOperazione, "aggiorna file");
+			strcpy(pacchettoApplicativo.nomeFile, nomeFileDaAggiornare);
+			strcpy(pacchettoApplicativo.idTransazione, idTransazione);
+			
+			sendPacchetto(&socketPerAggiornamenti, &pacchettoApplicativo);
+			bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+			receivePacchetto(&socketPerAggiornamenti, &pacchettoApplicativo, sizeof(struct pacchetto));
+			
+			if(strcmp(pacchettoApplicativo.tipoOperazione, "aggiorna file, pronto a ricevere") == 0) {
 			
 			spedisciFile(&socketPerAggiornamenti, fileConAggiornamenti, &pacchettoApplicativo);
 			printf("  %d: File spedito con successo al server ", getpid());
 			stampaIpEporta(&indirizzoServer[i]);
 			printf("\n");
+			}
+			else
+				printf("  %d: C\'è stato un\'errore durante l\'invio dell\'aggiornamento al server\n", getpid());
+			
+			closeSocket(&socketPerAggiornamenti);
 		}
-		else
-			printf("  %d: C\'è stato un\'errore durante l\'invio dell\'aggiornamento al server\n", getpid());
-		
-		closeSocket(&socketPerAggiornamenti);
 	}
 }
 

@@ -8,7 +8,7 @@ void interrompi();
 void mainFiglioAgrawala();
 
 main( int argc, char *argv[] ) {
-  int numeroMessaggioInviato=0;
+
 	struct fileApertiDalServer *listaFileAperti;
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
@@ -139,8 +139,7 @@ void acceptFiglioDiServizio() {
 
 //Questo main dovrà essere usato per gestire il trasferimento di file
 void mainDelFiglio() {
-	 int numeroMessaggioInviato=2;
-	
+	 
 		if(pid == 0) 
 		{
 			struct pacchetto pacchettoApplicativo;
@@ -274,7 +273,7 @@ void mainDelFiglio() {
 
 //questo main dovrà essere usato per gestire le richieste di servizio.
 void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
-	int numeroMessaggioInviato=2;
+
 		if(pid == 0) 
 		{
 			int dimensioneDatiRicevuti;
