@@ -247,7 +247,7 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond);
+					richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond, ID_numerico_server);
 					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 					
 				}
@@ -418,7 +418,7 @@ void mainFiglioAgrawala() {
 		struct fileApertiDalServer *listaFile;
 		listaFile = malloc(15*sizeof(struct fileApertiDalServer));
 		int i, socketPerRichiestaConferme, confermeRicevute = 0, descrittoreFileFifo, portaDaAssegnare, idServer;
-		struct sockaddr_in indirizzoServer[4],indirizzoDNS;
+		struct sockaddr_in indirizzoServer[4];
 		struct pacchetto pacchettoApplicativo;
 		char percorsoFileFifo[50], stringaIndirizzoIP[16];
 
@@ -426,7 +426,8 @@ void mainFiglioAgrawala() {
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
 		chiediTuttiGliIpAlDNS(&indirizzoServer, stringaIndirizzoDNS, PORTADNS, ID_numerico_server);
-		stampaIpEporta(&indirizzoServer[0]);
+		stampaIpEporta(&indirizzoServer[2]);
+		
 		while(1) {
 			
 			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
