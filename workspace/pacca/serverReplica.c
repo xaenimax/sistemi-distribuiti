@@ -10,8 +10,6 @@ void mainFiglioAgrawala();
 main( int argc, char *argv[] ) {
 
 	struct fileApertiDalServer *listaFileAperti;
-	FILE *fileDiConfigurazione;
-	char *percorsoFileDiConfigurazione = "configurazioneServer.cfg";
 	
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
 	srand(time(NULL));
@@ -22,31 +20,23 @@ main( int argc, char *argv[] ) {
 
 	svuotaStrutturaListaFile(listaFileAperti);
 	
-	fileDiConfigurazione = fopen(percorsoFileDiConfigurazione, "r");
-	
-	if(fileDiConfigurazione == NULL) {
-		printf("%d: Il file di configurazione \'%s\' non esiste. Impossibile avviare il server\n", getpid(), percorsoFileDiConfigurazione);
-		exit(-1);
-	}
-	else
-		leggiFileDiConfigurazione(fileDiConfigurazione);
-	
-	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
-  {
-	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
-	exit(1);
-  }
-  else 
-  { 
-		ID_numerico_server = atoi(argv[1]);
-	}
+	leggiFileDiConfigurazione(&ID_numerico_server, &portaRichiesteNormali, &portaDNS, directoryDeiFile, stringaIndirizzoDNS);
+// 	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
+//   {
+// 	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
+// 	exit(1);
+//   }
+//   else 
+//   { 
+// 		ID_numerico_server = atoi(argv[1]);
+// 	}
 
-	if(argc < 3) {
-// 		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
-		portaRichiesteNormali = NORMAL_PORT;
-	}
-	else
-		portaRichiesteNormali = atoi(argv[2]);
+// 	if(argc < 3) {
+// // 		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
+// 		portaRichiesteNormali = NORMAL_PORT;
+// 	}
+// 	else
+// 		portaRichiesteNormali = atoi(argv[2]);
 	
 	portaDiServizio = portaRichiesteNormali + 1000; //Dato che il server DNS manda solo le porte per le richieste normali, la porta di servizio sarà quella normale + 1000. In questo modo, quando agrawala andra' a chiedere le porte al DNS, aggiungera' mille per sapere quale sarà la porta di servizio
 	
@@ -256,7 +246,7 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond, ID_numerico_server);
+					richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond, ID_numerico_server, directoryDeiFile);
 					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
 					
 				}
@@ -321,7 +311,7 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						
 						listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 					
-						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevutotimeStamp);
+						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevuto.timeStamp);
 						
 						int i;
 						
@@ -434,8 +424,8 @@ void mainFiglioAgrawala() {
 		svuotaStrutturaListaFile(listaFile);
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
-		chiediTuttiGliIpAlDNS(&indirizzoServer, stringaIndirizzoDNS, PORTADNS, ID_numerico_server);
-		
+		chiediTuttiGliIpAlDNS(&indirizzoServer, stringaIndirizzoDNS, portaDNS, ID_numerico_server);
+
 		while(1) {
 			
 			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
@@ -452,12 +442,14 @@ void mainFiglioAgrawala() {
 			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
 			
 			int iDelWhile = 0;
-
+			
 			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
 				//Vuol dire che l'indirizzo che dovrebbe stare in questa posizione è il mio. Non devo contattare me stesso quindi vado avanti. E' uguale a 0 perchè precedentemente evito di settare questo indirizzo se l'id del server con questo ip è uguale al mio
-				if(indirizzoServer[iDelWhile].sin_port == 0);
+				if(indirizzoServer[iDelWhile].sin_port == 0) {
+// 					printf("Scarto l'ip numero %d che dovrebbe essere il mio\n", iDelWhile);
  					iDelWhile++;
+				}
 				
 				createSocketStream(&socketPerRichiestaConferme);
 				printf("   %d: Sto per connettermi all'ip: ", getpid());

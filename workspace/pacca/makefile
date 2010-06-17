@@ -3,7 +3,8 @@ all : serverReplica.c DNSserver.c
 	gcc -o serverReplica serverReplica.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniServerReplicaPacca.c ../funzioniDNSserver.c ../funzioniDNS.c
 	gcc -o DNSserver DNSserver.c ../funzioniDNSserver.c ../funzioniGeneriche.c ../funzioniSocket.c
 	cp ./fileCondivisi/marina2.txt ./fileCondivisi/marina.txt
-
+	cp serverReplica server2
+	cp serverReplica server3
 	
 serverReplica : serverReplica.o ../funzioniGeneriche.o ../funzioniSocket.o ../funzioniServerReplicaPacca.o
 	gcc serverReplica.o ../funzioniGeneriche.o ../funzioniSocket.o ../funzioniServerReplicaPacca.o -o serverReplica
