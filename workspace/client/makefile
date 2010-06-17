@@ -1,17 +1,8 @@
-all : clientNormale.c clientDiServizio.c
+all : client.c 
+	gcc -o client client.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c 
 
-	gcc -o clientNormale clientNormale.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c 
-	gcc -o clientDiServizio clientDiServizio.c ../funzioniGeneriche.c ../funzioniSocket.c
-	gcc -o clientNormalePacca clientNormalePacca.c ../funzioniGeneriche.c ../funzioniSocket.c ../funzioniDNS.c 
-
-clientNormale : clientNormale.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o
-	gcc clientNormale.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o -o clientNormale
-	
-clientNormalePacca : clientNormale.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o
-	gcc clientNormalePacca.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o -o clientNormalePacca
-	
-clientDiServizio : clientDiServizio.o ../funzioniGeneriche.o ../funzioniSocket.o 
-	gcc -o clientDiServizio.o ../funzioniGeneriche.o ../funzioniSocket.o -o clientDiServizio 
+client : client.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o
+	gcc client.o ../funzioniDNS.o ../funzioniGeneriche.o ../funzioniSocket.o -o client
 
 funzioniDNS.o : ../funzioniDNS.c ../funzioniDNS.h
 	gcc -c ../funzioniDNS.c
@@ -21,12 +12,5 @@ funzioniGeneriche.o : ../funzioniGeneriche.c ../funzioniGeneriche.h
 
 funzioniSocket.o : ../funzioniSocket.c ../funzioniSocket.h
 	gcc -c ../funzioniSocket.c
-
-
-clientNormale.o : clientNormale.c 
-	gcc -c clientNormale.c
-
-clientDiServizio.o : clientDiServizio.c 
-	gcc -c clientDiServizio.c
-
-
+client.o : client.c 
+	gcc -c client.c
