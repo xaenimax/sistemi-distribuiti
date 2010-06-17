@@ -125,98 +125,122 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		printf("  %d [%s] Invio messaggio al client\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		
 		sendPacchetto(socketConnesso,pacchettoApplicativo);
-		printf("  %d [%s] In attesa di ricezione dal client\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		printf("  %d [%s] In attesa di ricezione dal client..\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		bzero(pacchettoApplicativo,sizeof(struct pacchetto));
 		receivePacchetto(socketConnesso, pacchettoApplicativo,sizeof(struct pacchetto));
-		printf("  %d [%s] Messaggio ricevuto: %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->messaggio);
-
-		if(strcmp(pacchettoApplicativo->messaggio,"commit")==0)
-		{
-			// 		richiama il metodo con l'algoritmo di agrawala
-			struct fileApertiDalServer *listaFile;
-			char percorsoFileFifo[50], contenutoFileFifo[100];
-			int descrittoreFileFifo;
-			listaFile = malloc(15*sizeof(struct fileApertiDalServer));
-			
-			svuotaStrutturaListaFile(listaFile);
-
-			listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
-			
-			printf("  %d:[%s] Commit in esecuzione! File: \'%s\'\n", getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
-			int i;
-			//cerco nell'array dei file, la prima posizione vuota e vado ad inserire il mio file
-			for(i = 0; i < 10 && strlen(listaFile[i].nomeFile) != 0; i++) {
-// 				printf("  %d:[%s, DEBUG] Cerco una posizione vuota dove inserire il mio file.\n", getpid(), pacchettoApplicativo->tipoOperazione);
-				if(i == 9)
-					i = -1;
-			}
-			
-// 			printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoApplicativo->tipoOperazione, i);
-			//Scrivendo in listaFile, che è la memoria dinamica condivisa, avviso il figlio di agrawala che dovrà cominciare a fare agrawala
-			strcpy(listaFile[i].nomeFile, nomeFileDaSostituire);
-			strcpy(listaFile[i].idTransazione, IDgenerato);
-			
-			//----------Ora comincio a vedere se il figlio di agrawala ha finito di ricevere le conferme
-			strcpy(percorsoFileFifo, "/tmp/");
-			strcat(percorsoFileFifo, IDgenerato);
-			
-			while(strcmp(contenutoFileFifo, "Ok") != 0) {
-				sleep(1);
-				descrittoreFileFifo = open(percorsoFileFifo, O_RDONLY);
-				read(descrittoreFileFifo, contenutoFileFifo, sizeof(contenutoFileFifo));
-				close(descrittoreFileFifo);
-			}
-			//----------------
-			
-			printf("  %d: Agrawala ha detto si'. :D Avviso il client che il commit è andato a buon fine\n", getpid());
-			
-			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-			strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
-			strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
-			sendPacchetto(socketConnesso, pacchettoApplicativo);
-			
-			printf("  %d: Spedita la conferma al client.\n", getpid());
-			
-			strcpy(nomeFileTemporaneo,IDgenerato);
-			strcat(nomeFileTemporaneo,".marina");
-
-			//Lo chiudo perchè dato che ci stavo scrivendo, il puntatore al file è alla fine e non copierebbe niente nel file originale
-			fclose(fileDiScritturaMomentanea);
-			fopen(percorsoDestinazione, "r");
-			copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
-			
-			spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire,IDgenerato,idServer);
-			
-			if(copiaFile > 0)
-				remove(percorsoDestinazione);
-			
-			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
-			strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
-			strcpy(pacchettoApplicativo->messaggio,"commit");
-			printf("  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		if(errno==11){
+			printf("  %d: [%s] Il client non risponde da 30 secondi. Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
+	//		closeSocket(socketConnesso); per ora lo lascio commentato e vedo che fa
+			remove(nomeFileDaSostituire);
+			free(nomeDaSostituire);
+			free(nomeFileDaSostituire);
+			free(buffer);
+			free(stringaImmessa);
+			free(percorsoDestinazione);
+			free(nomeFileTemporaneo);
+			free(percorsoOrigine);
+			return 0;
 		}
-		
-		else if(strcmp(pacchettoApplicativo->messaggio,"abort")==0)
-		{
-			if(remove(percorsoDestinazione)<0){
-				printf("  %d [%s]Errore nella cancellazione del file momentaneo abortito in scrittura",getpid(),pacchettoApplicativo->tipoOperazione);
-				perror("");
-				return(-1);
+		if(strcmp(pacchettoApplicativo->idTransazione,IDgenerato)==0){
+			
+			printf("  %d [%s] Messaggio ricevuto: %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->messaggio);
+
+			if(strcmp(pacchettoApplicativo->messaggio,"commit")==0)
+			{
+				// 		richiama il metodo con l'algoritmo di agrawala
+				struct fileApertiDalServer *listaFile;
+				char percorsoFileFifo[50], contenutoFileFifo[100];
+				int descrittoreFileFifo;
+				listaFile = malloc(15*sizeof(struct fileApertiDalServer));
+				
+				svuotaStrutturaListaFile(listaFile);
+
+				listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
+				
+				printf("  %d:[%s] Commit in esecuzione! File: \'%s\'\n", getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
+				int i;
+				//cerco nell'array dei file, la prima posizione vuota e vado ad inserire il mio file
+				for(i = 0; i < 10 && strlen(listaFile[i].nomeFile) != 0; i++) {
+	// 				printf("  %d:[%s, DEBUG] Cerco una posizione vuota dove inserire il mio file.\n", getpid(), pacchettoApplicativo->tipoOperazione);
+					if(i == 9)
+						i = -1;
+				}
+				
+	// 			printf("  %d:[%s, DEBUG] Posizione vuota: %d\n", getpid(), pacchettoApplicativo->tipoOperazione, i);
+				//Scrivendo in listaFile, che è la memoria dinamica condivisa, avviso il figlio di agrawala che dovrà cominciare a fare agrawala
+				strcpy(listaFile[i].nomeFile, nomeFileDaSostituire);
+				strcpy(listaFile[i].idTransazione, IDgenerato);
+				
+				//----------Ora comincio a vedere se il figlio di agrawala ha finito di ricevere le conferme
+				strcpy(percorsoFileFifo, "/tmp/");
+				strcat(percorsoFileFifo, IDgenerato);
+				
+				while(strcmp(contenutoFileFifo, "Ok") != 0) {
+					sleep(1);
+					descrittoreFileFifo = open(percorsoFileFifo, O_RDONLY);
+					read(descrittoreFileFifo, contenutoFileFifo, sizeof(contenutoFileFifo));
+					close(descrittoreFileFifo);
+				}
+				//----------------
+				
+				printf("  %d: Agrawala ha detto si'. :D Avviso il client che il commit è andato a buon fine\n", getpid());
+				
+				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
+				strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
+				sendPacchetto(socketConnesso, pacchettoApplicativo);
+				
+				printf("  %d: Spedita la conferma al client.\n", getpid());
+				
+				strcpy(nomeFileTemporaneo,IDgenerato);
+				strcat(nomeFileTemporaneo,".marina");
+
+				//Lo chiudo perchè dato che ci stavo scrivendo, il puntatore al file è alla fine e non copierebbe niente nel file originale
+				fclose(fileDiScritturaMomentanea);
+				fopen(percorsoDestinazione, "r");
+				copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
+				
+				spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire,IDgenerato,idServer);
+				
+				if(copiaFile > 0)
+					remove(percorsoDestinazione);
+				
+				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+				strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
+				strcpy(pacchettoApplicativo->messaggio,"commit");
+				printf("  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
 			}
-			printf("  %d [%s]Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
-					
-			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
-			strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
-			strcpy(pacchettoApplicativo->messaggio,"abort");
+			
+			else if(strcmp(pacchettoApplicativo->messaggio,"abort")==0)
+			{
+				if(remove(percorsoDestinazione)<0){
+					printf("  %d [%s]Errore nella cancellazione del file momentaneo abortito in scrittura",getpid(),pacchettoApplicativo->tipoOperazione);
+					perror("");
+					return(-1);
+				}
+				printf("  %d [%s]Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
+						
+				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+				strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
+				strcpy(pacchettoApplicativo->messaggio,"abort");
+			}
+			else{
+				strcat(pacchettoApplicativo->messaggio,"\n");
+				fwrite(pacchettoApplicativo->messaggio,1, strlen(pacchettoApplicativo->messaggio),fileDiScritturaMomentanea); 
+				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+				strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
+			}
 		}
 		else{
-			strcat(pacchettoApplicativo->messaggio,"\n");
-			fwrite(pacchettoApplicativo->messaggio,1, strlen(pacchettoApplicativo->messaggio),fileDiScritturaMomentanea); 
-			bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+			//aggiungere un contatore in modo che al 3° tentativo chiuda la connessione
+			bzero(pacchettoApplicativo,sizeof(struct pacchetto));
+			strcpy(pacchettoApplicativo->messaggio,"Inserire nuovamente i dati");
 			strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
+			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+			printf("  %d [%s]Errore dei dati in ricezione\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		}
 	}
 	printf("chiudo i file in uso\n");
@@ -230,6 +254,13 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	}
 	
 	//ci vuole il free di tutte le malloc
+	free(nomeDaSostituire);
+	free(nomeFileDaSostituire);
+	free(buffer);
+	free(stringaImmessa);
+	free(percorsoDestinazione);
+	free(nomeFileTemporaneo);
+	free(percorsoOrigine);
 	return (0);
 }
 
@@ -287,57 +318,55 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 
 //Chiede al DNS tutti gli IP e restituisce un sockaddr_in in cui salva tutti gli indirizzi ESCLUSO quello dell'idNumericoServer che fa la richiesta
 void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta) {
-		char **IPDaAssegnare, stringaIndirizzoIP[19];
-		int socketPerRichiestaLista, i, portaDaAssegnare, idServer;
-		struct pacchetto pacchettoApplicativo;
-		struct sockaddr_in indirizzoDNS;
+	char **IPDaAssegnare, stringaIndirizzoIP[19];
+	int socketPerRichiestaLista, i, portaDaAssegnare, idServer;
+	struct pacchetto pacchettoApplicativo;
+	struct sockaddr_in indirizzoDNS;
+	
+	IPDaAssegnare = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
+	for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
+		IPDaAssegnare[i] = malloc(19*sizeof(char));
+	
+	for(i=0;i<NUMERODISERVERREPLICA;i++){
+		bzero(&arrayDoveSalvareIndirizziDeiServer[i], sizeof(struct sockaddr_in));
+	}
+	
+	printf("   %d: Chiedo gli IP degli altri server al DNS\n", getpid());
+	createSocketStream(&socketPerRichiestaLista);
+	bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
+	assegnaIPaServaddr(indirizzoDNSinStringa,portaDNS,&indirizzoDNS);
+	connectSocket(&socketPerRichiestaLista,&indirizzoDNS);
+	
+	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+	strcpy(pacchettoApplicativo.tipoOperazione,"indirizzi server");
+	sendPacchetto(&socketPerRichiestaLista,&pacchettoApplicativo);
+	
+	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+	receivePacchetto(&socketPerRichiestaLista,&pacchettoApplicativo,sizeof(struct pacchetto));
+	closeSocket(&socketPerRichiestaLista);
+	
+	printf("   %d: IP ricevuti!\n", getpid());
+	
+	//Prendo il pacchetto ricevuto e mi salvo i tre indirizzi IP in tre char di indirizzi e 3 array di porte. Sono costretto a fare un for separato solo per questo perchè altrimento la strtok non funziona.
+	for(i=0;i<NUMERODISERVERREPLICA;i++){
+		char *indirizzotok; //se non funziona sposta questa fuori
+		if(i == 0)
+			indirizzotok=strtok(pacchettoApplicativo.messaggio,"\n");
+		else 
+			indirizzotok=strtok(NULL,"\n");
 		
-		IPDaAssegnare = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
-		for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
-			IPDaAssegnare[i] = malloc(19*sizeof(char));
-		
-		for(i=0;i<NUMERODISERVERREPLICA;i++){
-			bzero(&arrayDoveSalvareIndirizziDeiServer[i], sizeof(struct sockaddr_in));
-		}
-		
-		printf("   %d: Chiedo gli IP degli altri server al DNS\n", getpid());
-		createSocketStream(&socketPerRichiestaLista);
-		bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
-		assegnaIPaServaddr(indirizzoDNSinStringa,portaDNS,&indirizzoDNS);
-		connectSocket(&socketPerRichiestaLista,&indirizzoDNS);
-		
-		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
-		strcpy(pacchettoApplicativo.tipoOperazione,"indirizzi server");
-		sendPacchetto(&socketPerRichiestaLista,&pacchettoApplicativo);
-		
-		bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
-		receivePacchetto(&socketPerRichiestaLista,&pacchettoApplicativo,sizeof(struct pacchetto));
-		closeSocket(&socketPerRichiestaLista);
-		
-		printf("   %d: IP ricevuti!\n", getpid());
-		
-		//Prendo il pacchetto ricevuto e mi salvo i tre indirizzi IP in tre char di indirizzi e 3 array di porte. Sono costretto a fare un for separato solo per questo perchè altrimento la strtok non funziona.
-		for(i=0;i<NUMERODISERVERREPLICA;i++){
-			char *indirizzotok; //se non funziona sposta questa fuori
-			if(i == 0)
-				indirizzotok=strtok(pacchettoApplicativo.messaggio,"\n");
-			else 
-				indirizzotok=strtok(NULL,"\n");
-			
 // 			printf("   %d: Faccio la token di %s\n",getpid(), indirizzotok);
-			strcpy(IPDaAssegnare[i], indirizzotok);
-		}
-		
-		for(i=0;i<NUMERODISERVERREPLICA;i++){
-			separaIpEportaDaStringa(IPDaAssegnare[i],stringaIndirizzoIP,&portaDaAssegnare,&idServer);
-			portaDaAssegnare = portaDaAssegnare + 1000; //+ 1000 perchè devo contattare il server sulla porta di servizio e non quella normale
+		strcpy(IPDaAssegnare[i], indirizzotok);
+	}
+	
+	for(i=0;i<NUMERODISERVERREPLICA;i++){
+		separaIpEportaDaStringa(IPDaAssegnare[i],stringaIndirizzoIP,&portaDaAssegnare,&idServer);
+		portaDaAssegnare = portaDaAssegnare + 1000; //+ 1000 perchè devo contattare il server sulla porta di servizio e non quella normale
 // 			printf("   %d: IP \'%s\', porta: %d id server: %d\n", getpid(), stringaIndirizzoIP, portaDaAssegnare, idServer);
-			
-			//se è diverso assegno l'ip alla servaddr. SE è uguale allora è il mio ip e non mi interessa contattare me stesso
-			if(idServer != idNumericoServerCheFaLaRichiesta) {
-				assegnaIPaServaddr(stringaIndirizzoIP,portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
-			}
+		
+		//se è diverso assegno l'ip alla servaddr. SE è uguale allora è il mio ip e non mi interessa contattare me stesso
+		if(idServer != idNumericoServerCheFaLaRichiesta) {
+			assegnaIPaServaddr(stringaIndirizzoIP,portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
 		}
-	
-	
+	}	
 }

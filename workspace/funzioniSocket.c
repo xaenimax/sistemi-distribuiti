@@ -82,8 +82,7 @@ int sendData (int *socketConnesso, char *buff) {
 
 //effettua la send del pacchetto applicativo
 int sendPacchetto(int *socketConnesso, struct pacchetto *pacchettoDaInviare) {
-	
-	if (send(*socketConnesso, (void*)pacchettoDaInviare, sizeof(struct pacchetto), 0) != sizeof(struct pacchetto)) {
+		if (send(*socketConnesso, (void*)pacchettoDaInviare, sizeof(struct pacchetto), 0) != sizeof(struct pacchetto)) {
 		printf("  %d: ", getpid());
 		perror("errore in write del figlio\n"); 
 		exit(-1);

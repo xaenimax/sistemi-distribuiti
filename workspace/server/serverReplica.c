@@ -89,6 +89,10 @@ void acceptFiglioNormale() {
 	
 		while(1) {
 			acceptSocket(&connessioneNormale, &listenNormale);
+			struct timeval tempoDiAttesa;
+			tempoDiAttesa.tv_sec=10;
+			setsockopt(connessioneNormale,SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
+			
 					//se è stata accettata una connessione normale...
 			if(connessioneNormale != 0) {
 				printf(" %d: Creazione di un figlio in corso...\n", getpid());
