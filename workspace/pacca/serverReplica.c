@@ -321,7 +321,7 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						
 						listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 					
-						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevuto.timeStamp);
+						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevutotimeStamp);
 						
 						int i;
 						

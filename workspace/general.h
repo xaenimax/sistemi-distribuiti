@@ -19,7 +19,7 @@
 
 #define NUMERODISERVERREPLICA	3
 #define PORTADNS  	7000
-#define stringaIndirizzoDNS	"127.0.0.1"
+#define stringaIndirizzoDNS	"160.80.131.14"
 
 // char stringaIndirizzoDNS[]="127.0.0.1";
 

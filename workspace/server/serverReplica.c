@@ -39,8 +39,7 @@ main( int argc, char *argv[] ) {
 		portaRichiesteNormali = atoi(argv[2]);
 	
 	portaDiServizio = portaRichiesteNormali + 1000; //Dato che il server DNS manda solo le porte per le richieste normali, la porta di servizio sarà quella normale + 1000. In questo modo, quando agrawala andra' a chiedere le porte al DNS, aggiungera' mille per sapere quale sarà la porta di servizio
-	
-	
+
 	printf("%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
 	
 	createSocketStream(&listenNormale);
