@@ -120,8 +120,7 @@ main() {
 				//se c'è una richiesta di scrittura allora si manda l'id di transazione, dopodichè il server chiede con un while infinito di inserire le modifiche
 // 				una fatto commit da parte dell'utente si sottomettono le modifiche effettuate, altrimenti l'abort fa eliminare il file temporaneo
 				char stringaImmessa[600],IDtransazione[11];
-				
-				
+
 				strcpy(IDtransazione,pacchettoApplicativo.idTransazione);
 				
 				bzero(&pacchettoApplicativo,sizeof(pacchettoApplicativo));
@@ -131,7 +130,12 @@ main() {
 				strcpy(pacchettoApplicativo.idTransazione,IDtransazione);
 				
 				strcpy(pacchettoApplicativo.tipoOperazione,"scrivi file");
-				sleep (40);
+				//simulato errore crash client
+				//	sleep (40);
+		
+				//simulo fail bizantino
+				strcpy(pacchettoApplicativo.idTransazione,"000000");
+				
 				sendPacchetto(&socketCL, &pacchettoApplicativo);				
 				
 				if(strcmp(pacchettoApplicativo.messaggio,"commit")==0)
