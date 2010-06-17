@@ -90,7 +90,7 @@ void acceptFiglioNormale() {
 		while(1) {
 			acceptSocket(&connessioneNormale, &listenNormale);
 			struct timeval tempoDiAttesa;
-			tempoDiAttesa.tv_sec=10;
+			tempoDiAttesa.tv_sec=60;
 			setsockopt(connessioneNormale,SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
 			
 					//se è stata accettata una connessione normale...
@@ -250,9 +250,12 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond, ID_numerico_server);
-					numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
-					
+					int esitoScrittura=richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond, ID_numerico_server);
+					// se il risultato è >0 la funzione per la richiesta di modifiche ha lavorato correttamente
+					if(esitoScrittura>0)
+						numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
+					else
+						numeroDatiRicevuti=0;
 				}
 				
 				else {

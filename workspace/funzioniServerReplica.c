@@ -77,7 +77,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		strcpy(pacchettoApplicativo->messaggio,"Errore nella creazione del file temporaneo");
 		sendPacchetto(socketConnesso, pacchettoApplicativo);
 		perror("Errore nella creazione del file temporaneo");
-		return -1;
+		return 0;
 	}
 	
 	printf("  %d [%s] Apro il secondo file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,percorsoOrigine);
@@ -90,7 +90,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		strcpy(pacchettoApplicativo->messaggio,"Errore nell'apertura del file originale");
 		sendPacchetto(socketConnesso,pacchettoApplicativo);
 		perror("Errore nell'apertura del file originale");
-		return(-1);
+		return(0);
 	}
 	
 	if(fileOriginaleDaCopiare==NULL){
@@ -100,7 +100,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		strcpy(pacchettoApplicativo->messaggio, "File non trovato\n");
 		sendPacchetto(socketConnesso, pacchettoApplicativo);
 		printf("File non trovato\n");
-		return -1;
+		return 0;
 	}
 					
 	//Se trovo il file lo spedisco al client.
@@ -139,9 +139,10 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			free(percorsoDestinazione);
 			free(nomeFileTemporaneo);
 			free(percorsoOrigine);
+			//operazione terminata con errore
 			return 0;
 		}
-		if(strcmp(pacchettoApplicativo->idTransazione,IDgenerato)==0){
+		if((strcmp(pacchettoApplicativo->idTransazione,IDgenerato)==0)&&(strcmp(pacchettoApplicativo->tipoOperazione,"scrivi file")==0)){
 			
 			printf("  %d [%s] Messaggio ricevuto: %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->messaggio);
 
@@ -217,7 +218,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				if(remove(percorsoDestinazione)<0){
 					printf("  %d [%s]Errore nella cancellazione del file momentaneo abortito in scrittura",getpid(),pacchettoApplicativo->tipoOperazione);
 					perror("");
-					return(-1);
+					return(0);
 				}
 				printf("  %d [%s]Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
 						
@@ -261,7 +262,8 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	free(percorsoDestinazione);
 	free(nomeFileTemporaneo);
 	free(percorsoOrigine);
-	return (0);
+	//operazione completata correttamente
+	return (1);
 }
 
 //Spedisce il file temporaneo con gli aggiornamenti agli altri server

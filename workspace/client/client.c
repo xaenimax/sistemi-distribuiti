@@ -134,7 +134,7 @@ main() {
 				//	sleep (40);
 		
 				//simulo fail bizantino
-				strcpy(pacchettoApplicativo.idTransazione,"000000");
+		//		strcpy(pacchettoApplicativo.idTransazione,"000000");
 				
 				sendPacchetto(&socketCL, &pacchettoApplicativo);				
 				
