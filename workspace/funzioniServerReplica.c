@@ -455,7 +455,7 @@ int sincronizzazioneFile(char *directoryDeiFile){
 		int idServer;
 		errno = 0; //per evitare che mi chiuda il socket
 		createSocketStream(&connessioneSincr);
-		setsockopt(connessioneDNS, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
+		setsockopt(connessioneSincr, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
 		contattaDNS(riferimento_server);
 		separaIpEportaDaStringa(riferimento_server, indirizzoIpDelServer, &portaDelServer, &idServer);
 		assegnaIPaServaddr(indirizzoIpDelServer, portaDelServer, &servaddr);
@@ -499,34 +499,34 @@ int sincronizzazioneFile(char *directoryDeiFile){
 	strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
 	strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
 
-	riceviFile(&connessioneNormale, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
+	riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 							
 	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-	numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));		
+	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));		
 
 	while(nomeFile!=NULL){
-		*nomeFile=strtok(pacchettoApplicativo.messaggio,NULL);
-		strcpy(nomeFileDaScrivere, pacchettoApplicativo.nomeFile);
+		nomeFile=strtok(pacchettoApplicativo.messaggio,NULL);
+		strcpy(nomeFile, pacchettoApplicativo.nomeFile);
 		generaIDtransazione(pacchettoApplicativo.idTransazione);
 		
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		strcpy(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere");
-		strcpy(pacchettoApplicativo.nomeFile, nomeFileDaScrivere);
+		strcpy(pacchettoApplicativo.nomeFile, nomeFile);
 		
 		//dico al client che sono pronto a ricevere
-		sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+		sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
 		
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 		
 		char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
 		strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
 		strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
 	
-		riceviFile(&connessioneNormale, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
+		riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 								
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
+		receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
 
 		
 		
