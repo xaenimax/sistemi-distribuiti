@@ -92,7 +92,7 @@ main() {
 		
 		printf("Dati inviati. Attendo la ricezione di dati dal server\n");
 		
-		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		receivePacchetto(&socketCL, &pacchettoApplicativo, sizeof(struct pacchetto));
 		if(errno == 11) {
 			//< 5 vuol dire che ho provato 5 volte a rispedire il pacchetto a distanza di 1, 2,3,4,5 secondi
 			printf("Il server non risponde da 30 secondi. Chiudo la connessione\n", tempoDiAttesa.tv_sec);

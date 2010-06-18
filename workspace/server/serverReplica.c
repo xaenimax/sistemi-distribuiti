@@ -282,6 +282,9 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 
 		if(pid == 0) 
 		{
+			//int esitoSincronizzazione=sincronizzazioneFile(stringaIndirizzoDNS);
+			//if(esitoSincronizzazione<=0)
+			//	che fa?
 			int dimensioneDatiRicevuti;
 // 			char pippo[10];
 			struct pacchetto pacchettoRicevuto, pacchettoDaInviare;

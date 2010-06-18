@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 //Effettua la "dir" nella cartella del filesystem distribuito e la invia al client connesso al socket
+#include "funzioniDNS.h"
 
 void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta);
 
@@ -371,4 +372,102 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 			assegnaIPaServaddr(stringaIndirizzoIP,portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
 		}
 	}	
+}
+
+int sincronizzazioneFile(char *directoryDeiFile){
+	char riferimento_server[600],indirizzoIpDelServer[100];
+	int connessioneSincr,i,portaDelServer;
+	struct timeval tempoDiAttesa;
+	struct sockaddr_in servaddr;
+	struct pacchetto pacchettoApplicativo;
+	
+	tempoDiAttesa.tv_sec=30;
+	errno=111;
+
+	for(i = 1; errno == 111 && i <= NUMERODISERVERREPLICA; i++) {
+		int idServer;
+		errno = 0; //per evitare che mi chiuda il socket
+		createSocketStream(&connessioneSincr);
+		setsockopt(connessioneDNS, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
+		contattaDNS(riferimento_server);
+		separaIpEportaDaStringa(riferimento_server, indirizzoIpDelServer, &portaDelServer, &idServer);
+		assegnaIPaServaddr(indirizzoIpDelServer, portaDelServer, &servaddr);
+		printf("Provo a connettermi al server %d con ip ", idServer);
+		stampaIpEporta(&servaddr);
+		printf("\n");
+		connectSocket(&connessioneSincr, &servaddr);
+		//chiudo il socket solo se non riesco a connettermi
+		if(errno == 111)
+			closeSocket(&connessioneSincr);
+	}
+	if(i == 4 && errno == 111) {
+		printf("Non risulta nessun server attivo! :(\n");
+		//exit(0);
+		return (-1);
+	}
+	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+	strcpy(pacchettoApplicativo.tipoOperazione,"lista file");
+	sendPacchetto(&connessioneSincr,&pacchettoApplicativo);
+	
+	
+	
+	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+	receivePacchetto(&connessioneSincr,&pacchettoApplicativo,sizeof(struct pacchetto));
+	printf("La lista file ricevuta %s",pacchettoApplicativo.messaggio);
+	
+	char *nomeFile=strtok(pacchettoApplicativo.messaggio,"\n");
+	generaIDtransazione(pacchettoApplicativo.idTransazione);
+	
+	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	strcpy(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere");
+	strcpy(pacchettoApplicativo.nomeFile, nomeFile);
+	
+	//dico al client che sono pronto a ricevere
+	sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
+	
+	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	
+	char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
+	strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
+	strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
+
+	riceviFile(&connessioneNormale, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
+							
+	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));		
+
+	while(nomeFile!=NULL){
+		*nomeFile=strtok(pacchettoApplicativo.messaggio,NULL);
+		strcpy(nomeFileDaScrivere, pacchettoApplicativo.nomeFile);
+		generaIDtransazione(pacchettoApplicativo.idTransazione);
+		
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		strcpy(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere");
+		strcpy(pacchettoApplicativo.nomeFile, nomeFileDaScrivere);
+		
+		//dico al client che sono pronto a ricevere
+		sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
+		
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		
+		char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
+		strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
+		strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
+	
+		riceviFile(&connessioneNormale, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
+								
+		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+		numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
+
+		
+		
+		
+	}
+	//controlla le operazioni di copia file deve essere contrario rispetto a client server
+	
+	
+	
+	return 1;
 }
