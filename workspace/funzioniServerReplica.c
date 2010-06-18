@@ -450,7 +450,7 @@ int sincronizzazioneFile(char *directoryDeiFile){
 	
 	tempoDiAttesa.tv_sec=30;
 	errno=111;
-
+	//contatta il primo Server disponibile
 	for(i = 1; errno == 111 && i <= NUMERODISERVERREPLICA; i++) {
 		int idServer;
 		errno = 0; //per evitare che mi chiuda il socket
@@ -473,11 +473,9 @@ int sincronizzazioneFile(char *directoryDeiFile){
 		return (-1);
 	}
 	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+	//chiede la lista dei file da copiare
 	strcpy(pacchettoApplicativo.tipoOperazione,"lista file");
 	sendPacchetto(&connessioneSincr,&pacchettoApplicativo);
-	
-	
-	
 	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
 	receivePacchetto(&connessioneSincr,&pacchettoApplicativo,sizeof(struct pacchetto));
 	printf("La lista file ricevuta %s",pacchettoApplicativo.messaggio);
