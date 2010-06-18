@@ -8,8 +8,8 @@
 #define BACKLOG       10
 #define MAXLINE     1024
 
-int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala, portaDiServizio, portaRichiesteNormali, chiaveMemCondivisa;
+int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala, portaDiServizio, portaRichiesteNormali, chiaveMemCondivisa, portaDNS;
 int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr,indirizzoAgrawala;
-const char directoryDeiFile[] = "fileCondivisi/";
+char directoryDeiFile[100], stringaIndirizzoDNS[20];
 int idSegmentoMemCond;

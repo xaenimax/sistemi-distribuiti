@@ -15,31 +15,32 @@ main( int argc, char *argv[] ) {
 	srand(time(NULL));
 	chiaveMemCondivisa = 48 + (rand()/(int)(((unsigned)RAND_MAX + 1) / 74));
 	
-	
 	idSegmentoMemCond = shmget(chiaveMemCondivisa, 15*sizeof(struct fileApertiDalServer), IPC_CREAT|0666); //creo la memoria condivisa. La chiave mi serve per identificare, se voglio, la mem condivisa.
 	listaFileAperti = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
 	svuotaStrutturaListaFile(listaFileAperti);
 	
-	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
-  {
-	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
-	exit(1);
-  }
-  else 
-  { 
-		ID_numerico_server = atoi(argv[1]);
-	}
+	leggiFileDiConfigurazione(&ID_numerico_server, &portaRichiesteNormali, &portaDNS, directoryDeiFile, stringaIndirizzoDNS);
+// 	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
+//   {
+// 	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
+// 	exit(1);
+//   }
+//   else 
+//   { 
+// 		ID_numerico_server = atoi(argv[1]);
+// 	}
 
-	if(argc < 3) {
-// 		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
-		portaRichiesteNormali = NORMAL_PORT;
-	}
-	else
-		portaRichiesteNormali = atoi(argv[2]);
+// 	if(argc < 3) {
+// // 		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
+// 		portaRichiesteNormali = NORMAL_PORT;
+// 	}
+// 	else
+// 		portaRichiesteNormali = atoi(argv[2]);
 	
 	portaDiServizio = portaRichiesteNormali + 1000; //Dato che il server DNS manda solo le porte per le richieste normali, la porta di servizio sarà quella normale + 1000. In questo modo, quando agrawala andra' a chiedere le porte al DNS, aggiungera' mille per sapere quale sarà la porta di servizio
-
+	
+	
 	printf("%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
 	
 	createSocketStream(&listenNormale);
@@ -433,8 +434,8 @@ void mainFiglioAgrawala() {
 		svuotaStrutturaListaFile(listaFile);
 		listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 
-		chiediTuttiGliIpAlDNS(&indirizzoServer, stringaIndirizzoDNS, PORTADNS, ID_numerico_server);
-		
+		chiediTuttiGliIpAlDNS(&indirizzoServer, stringaIndirizzoDNS, portaDNS, ID_numerico_server);
+
 		while(1) {
 			
 			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
@@ -451,7 +452,7 @@ void mainFiglioAgrawala() {
 			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
 			
 			int iDelWhile = 0;
-
+			
 			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
 				//Vuol dire che l'indirizzo che dovrebbe stare in questa posizione è il mio. Non devo contattare me stesso quindi vado avanti. E' uguale a 0 perchè precedentemente evito di settare questo indirizzo se l'id del server con questo ip è uguale al mio
