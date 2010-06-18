@@ -114,6 +114,7 @@ void closeSocket(int *socketDaChiudere) {
 
 void inetPton(struct sockaddr_in *indirizzo, char *indirizzoInStringa) {
 	if(inet_pton(AF_INET, indirizzoInStringa, &indirizzo->sin_addr) <= 0) {
+		printf("%d: ", getpid());
 		perror("Errore nella conversione dell'indirizzo");
 		exit(-1);
 	}
