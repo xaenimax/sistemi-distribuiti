@@ -7,9 +7,9 @@
 #include <stdio.h>
 #include <string.h>
 //Effettua la "dir" nella cartella del filesystem distribuito e la invia al client connesso al socket
-#include "funzioniDNS.h"
 
 void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta);
+void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, char *percorsoFileCondivisi, char* indirizzoDNS);
 
 void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	int numeroDiFileTrovati = 0;
@@ -40,7 +40,7 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
 }
 
-int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond, int idServer){
+int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond, int idServer, char *directoryDeiFile){
 	
 	printf("  %d [%s]Creazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
 	
@@ -65,7 +65,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	strcpy(nomeFileTemporaneo,IDgenerato);
 	strcat(nomeFileTemporaneo,".marina");
 	strcat(percorsoDestinazione,nomeFileTemporaneo);
-	strcpy(percorsoOrigine,"fileCondivisi/");
+	strcpy(percorsoOrigine,directoryDeiFile);
 	strcat(percorsoOrigine,nomeFileDaSostituire);
 	
 	printf("  %d: [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
@@ -147,8 +147,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			
 			printf("  %d [%s] Messaggio ricevuto: %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->messaggio);
 
-			if(strcmp(pacchettoApplicativo->messaggio,"commit")==0)
-			{
+			if(strcmp(pacchettoApplicativo->messaggio,"commit")==0) {
 				// 		richiama il metodo con l'algoritmo di agrawala
 				struct fileApertiDalServer *listaFile;
 				char percorsoFileFifo[50], contenutoFileFifo[100];
@@ -178,6 +177,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				strcat(percorsoFileFifo, IDgenerato);
 				
 				while(strcmp(contenutoFileFifo, "Ok") != 0) {
+					//Per evitare di sovraccaricare la cpu
 					sleep(1);
 					descrittoreFileFifo = open(percorsoFileFifo, O_RDONLY);
 					read(descrittoreFileFifo, contenutoFileFifo, sizeof(contenutoFileFifo));
@@ -213,7 +213,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				strcpy(pacchettoApplicativo->messaggio,"commit");
 				printf("  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
 			}
-			
+		
 			else if(strcmp(pacchettoApplicativo->messaggio,"abort")==0)
 			{
 				if(remove(percorsoDestinazione)<0){
@@ -269,13 +269,18 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 
 //Spedisce il file temporaneo con gli aggiornamenti agli altri server
 int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAggiornare, char* idTransazione, int idServer) {
-	int socketPerAggiornamenti, i;
+	
+	int socketPerAggiornamenti, i, portaDNS, idServerPerFileConfNonUsato, portaServerNonUsato;
+	char stringaIndirizzoDNS[20], percorsoFileNonUsato[100]; //Le variabili con il tag nonusato sono state create in quanto la funzione leggiconfigurazione accetta in ingresso anche queste variabili che devono essere settate a un qualche valore. Se non le passo, ho un comportamento anomalo del server
 	struct sockaddr_in indirizzoServer[NUMERODISERVERREPLICA];
 	struct pacchetto pacchettoApplicativo;
 	//mi porto all'inizio del file
 	fseek(fileConAggiornamenti, 0L, SEEK_SET);
 	printf("IDSERVER : %d", idServer);
-	chiediTuttiGliIpAlDNS(indirizzoServer, stringaIndirizzoDNS, PORTADNS, idServer);
+	
+	leggiFileDiConfigurazione(&idServerPerFileConfNonUsato, &portaServerNonUsato, &portaDNS, percorsoFileNonUsato, stringaIndirizzoDNS);
+	
+	chiediTuttiGliIpAlDNS(indirizzoServer, stringaIndirizzoDNS, portaDNS, idServer);
 	
 	for(i = 0; i < NUMERODISERVERREPLICA; i++) {
 		
@@ -318,7 +323,6 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 	}
 }
 
-
 //Chiede al DNS tutti gli IP e restituisce un sockaddr_in in cui salva tutti gli indirizzi ESCLUSO quello dell'idNumericoServer che fa la richiesta
 void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta) {
 	char **IPDaAssegnare, stringaIndirizzoIP[19];
@@ -334,7 +338,7 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 		bzero(&arrayDoveSalvareIndirizziDeiServer[i], sizeof(struct sockaddr_in));
 	}
 	
-	printf("   %d: Chiedo gli IP degli altri server al DNS\n", getpid());
+	printf("   %d: Chiedo gli IP degli altri server al DNS %s:%d\n", getpid(), indirizzoDNSinStringa, portaDNS);
 	createSocketStream(&socketPerRichiestaLista);
 	bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
 	assegnaIPaServaddr(indirizzoDNSinStringa,portaDNS,&indirizzoDNS);
@@ -366,13 +370,76 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 		separaIpEportaDaStringa(IPDaAssegnare[i],stringaIndirizzoIP,&portaDaAssegnare,&idServer);
 		portaDaAssegnare = portaDaAssegnare + 1000; //+ 1000 perchè devo contattare il server sulla porta di servizio e non quella normale
 // 			printf("   %d: IP \'%s\', porta: %d id server: %d\n", getpid(), stringaIndirizzoIP, portaDaAssegnare, idServer);
-		
-		//se è diverso assegno l'ip alla servaddr. SE è uguale allora è il mio ip e non mi interessa contattare me stesso
+
+//se è diverso assegno l'ip alla servaddr. SE è uguale allora è il mio ip e non mi interessa contattare me stesso
 		if(idServer != idNumericoServerCheFaLaRichiesta) {
 			assegnaIPaServaddr(stringaIndirizzoIP,portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
 		}
-	}	
+	}
 }
+
+
+//Legge il file di configurazione e salva i parametri dentro le variabili passate
+void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, char *percorsoFileCondivisi, char* indirizzoDNS) {
+
+	FILE *fileDiConfigurazione;
+	int numeroDiParametriDaLeggere = 5, i;
+	char *contenutoFileTok, contenutoFilediConfigurazione[500], rigaFileDiconfigurazione[numeroDiParametriDaLeggere][100]; //contenutoFilediConfigurazione contiene tutto il file, numeroDiParametriDaLeggere sono le righe del file di configurazione da leggere
+	
+	fileDiConfigurazione = fopen(percorsoFileDiConfigurazione, "r");
+	
+	if(fileDiConfigurazione == NULL) {
+		printf("%d: Il file di configurazione \'%s\' non esiste. Impossibile avviare il server\n", getpid(), percorsoFileDiConfigurazione);
+		exit(-1);
+	}
+	
+	fread(contenutoFilediConfigurazione, 1, sizeof(contenutoFilediConfigurazione), fileDiConfigurazione);
+	
+	contenutoFileTok = strtok(contenutoFilediConfigurazione, "\n");
+	strcpy(rigaFileDiconfigurazione[0], contenutoFileTok);
+	
+	//Salvo ogni riga del file dentro un array
+	for(i = 1;contenutoFileTok != NULL && i < numeroDiParametriDaLeggere; i++) {
+		contenutoFileTok = strtok(NULL, "\n");
+		strcpy(rigaFileDiconfigurazione[i],contenutoFileTok);
+// 		printf("Tok: %s\n", contenutoFileTok);
+	}
+	
+	//Metto i parametri di ogni riga del file di configurazione dentro le varie variabili
+	for(i = 0; i < numeroDiParametriDaLeggere; i++) {
+		//Legge la stringa, non mi serve
+		contenutoFileTok = strtok(rigaFileDiconfigurazione[i], ":");
+
+		//legge il valore, me serve :D
+		contenutoFileTok = strtok(NULL, ":");
+
+		switch(i) {
+			
+			case 0:
+				*idServer = atoi(contenutoFileTok);
+				break;
+				
+			case 1:
+				*portaServer = atoi(contenutoFileTok);
+				break;
+				
+			case 2:
+				strcpy(percorsoFileCondivisi, contenutoFileTok);
+				break;
+				
+			case 3:
+				strcpy(indirizzoDNS, contenutoFileTok);
+				break;
+				
+			case 4:
+				*portaDNS = atoi(contenutoFileTok);
+				break;
+		}
+	}
+	
+// 	printf("%d, %d, %s, %s %d %d", idServer, porta, percorsoFileCondivisi, indirizzoDNS, portaDNS);
+}
+
 
 int sincronizzazioneFile(char *directoryDeiFile){
 	char riferimento_server[600],indirizzoIpDelServer[100];
