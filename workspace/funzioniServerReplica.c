@@ -285,8 +285,13 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 	for(i = 0; i < NUMERODISERVERREPLICA; i++) {
 		
 		//Se è = 0 vuol dire che in questa posizione ci dovrebbe essere il mio indirizzo. Non devo contattare me stesso per fare agrawala
-		if(indirizzoServer[i].sin_port==0)
-			i++;
+		if(indirizzoServer[i].sin_port==0) {
+			//Se sono l'ultimo server non devo spedire l'aggiornamento a nessuno
+			if(i != NUMERODISERVERREPLICA-1)
+				i++;
+			else
+				break;
+		}
 		createSocketStream(&socketPerAggiornamenti);
 // 		printf("   %d: Sto per connettermi all'ip: ", getpid());
 		connectSocket(&socketPerAggiornamenti, &indirizzoServer[i]);

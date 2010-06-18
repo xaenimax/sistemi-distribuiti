@@ -250,7 +250,7 @@ void mainDelFiglio() {
 				else if(strcmp(pacchettoApplicativo.tipoOperazione, "scrivi file") == 0){
 					char IDTransazione[10];
 					generaIDtransazione(IDTransazione);
-					int esitoScrittura=richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond, ID_numerico_server);
+					int esitoScrittura=richiestaScritturaFile(IDTransazione,&pacchettoApplicativo,&connessioneNormale,idSegmentoMemCond, ID_numerico_server,directoryDeiFile);
 					// se il risultato è >0 la funzione per la richiesta di modifiche ha lavorato correttamente
 					if(esitoScrittura>0)
 						numeroDatiRicevuti=receivePacchetto(&connessioneNormale,&pacchettoApplicativo,sizeof(pacchettoApplicativo));
@@ -456,8 +456,9 @@ void mainFiglioAgrawala() {
 			while(confermeRicevute < NUMERODISERVERREPLICA-1) {
 
 				//Vuol dire che l'indirizzo che dovrebbe stare in questa posizione è il mio. Non devo contattare me stesso quindi vado avanti. E' uguale a 0 perchè precedentemente evito di settare questo indirizzo se l'id del server con questo ip è uguale al mio
-				if(indirizzoServer[iDelWhile].sin_port == 0);
+				if(indirizzoServer[iDelWhile].sin_port == 0) {
  					iDelWhile++;
+				}
 				
 				createSocketStream(&socketPerRichiestaConferme);
 				printf("   %d: Sto per connettermi all'ip: ", getpid());
