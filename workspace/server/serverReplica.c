@@ -11,6 +11,7 @@ main( int argc, char *argv[] ) {
 
 	struct fileApertiDalServer *listaFileAperti;
 	
+	//Alloco memoria dinamica per l'arrey listaFileAperti
 	listaFileAperti = malloc(15*sizeof(struct fileApertiDalServer));
 	srand(time(NULL));
 	chiaveMemCondivisa = 48 + (rand()/(int)(((unsigned)RAND_MAX + 1) / 74));
@@ -20,28 +21,18 @@ main( int argc, char *argv[] ) {
 
 	svuotaStrutturaListaFile(listaFileAperti);
 	
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
+	
 	leggiFileDiConfigurazione(&ID_numerico_server, &portaRichiesteNormali, &portaDNS, directoryDeiFile, stringaIndirizzoDNS);
-// 	if ( argc < 2 ) //andiamo a prendere l'id numerico da riga di comando
-//   {
-// 	printf( "\n Utilizzo: %s ID numerico \n", argv[0] ); //errore
-// 	exit(1);
-//   }
-//   else 
-//   { 
-// 		ID_numerico_server = atoi(argv[1]);
-// 	}
-
-// 	if(argc < 3) {
-// // 		printf("Porta di servizio non specificata. Verra' usata la porta di servizio %d.\n", SERVICE_PORT);
-// 		portaRichiesteNormali = NORMAL_PORT;
-// 	}
-// 	else
-// 		portaRichiesteNormali = atoi(argv[2]);
 	
 	portaDiServizio = portaRichiesteNormali + 1000; //Dato che il server DNS manda solo le porte per le richieste normali, la porta di servizio sarà quella normale + 1000. In questo modo, quando agrawala andra' a chiedere le porte al DNS, aggiungera' mille per sapere quale sarà la porta di servizio
+	printf("%d : Avvio la sincronizzazione del file system..\n",getpid());
+	int esitoSincronizzazione=sincronizzazioneFile(directoryDeiFile);
+			if(esitoSincronizzazione<=0)
+				printf("sbagliato qualcosa\n");
 	
-	
-	printf("%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
+	sprintf(bufferPerLog, "%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
+	writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 	
 	createSocketStream(&listenNormale);
 	createSocketStream(&listenDiServizio);
@@ -72,12 +63,14 @@ main( int argc, char *argv[] ) {
 		pid = fork();
 		acceptFiglioDiServizio();
 		
-		printf("%d: Server avviato:\n", getpid());
+		sprintf(bufferPerLog, "%d: Server avviato:\n", getpid());
+		writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 		
 		// -1 sta per aspetto qualasiasi figlio che termina, 0 sta per nessuna opzione, rimango bloccato fino a che non muore qualche figlio.
 		waitpid(-1, &pid, 0);
 		
-		printf("%d: Il server è stato arrestato per qualche errore!\n", getpid());
+		sprintf(bufferPerLog, "%d: Il server è stato arrestato per qualche errore!\n", getpid());
+		writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 		exit(0);
 	}
 }
@@ -85,7 +78,8 @@ main( int argc, char *argv[] ) {
 void acceptFiglioNormale() {
 	if(pid == 0) {
 		
-		printf(" %d: In attesa di una richiesta normale...\n", getpid());
+		sprintf(bufferPerLog, " %d: In attesa di una richiesta normale...\n", getpid());
+		writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 	
 		while(1) {
 			acceptSocket(&connessioneNormale, &listenNormale);
@@ -95,7 +89,8 @@ void acceptFiglioNormale() {
 			
 					//se è stata accettata una connessione normale...
 			if(connessioneNormale != 0) {
-				printf(" %d: Creazione di un figlio in corso...\n", getpid());
+				sprintf(bufferPerLog, " %d: Creazione di un figlio in corso...\n", getpid());
+				writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 				
 				pid = fork();
 			
@@ -113,7 +108,8 @@ void acceptFiglioDiServizio() {
 
 	if(pid == 0) {
 		
-		printf(" %d: In attesa di una richiesta di servizio...\n", getpid());
+		sprintf(bufferPerLog, " %d: In attesa di una richiesta di servizio...\n", getpid());
+		writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 		
 		pidFiglioAgrawala = fork();
 		mainFiglioAgrawala();
@@ -124,7 +120,8 @@ void acceptFiglioDiServizio() {
 			
 					//se è stata accettata una connessione normale...
 				if(connessioneDiServizio != 0) {
-					printf(" %d: Creazione di un figlio di servizio in corso...\n", getpid());
+					sprintf(bufferPerLog, " %d: Creazione di un figlio di servizio in corso...\n", getpid());
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 				
 					pid = fork();
 			
@@ -148,14 +145,16 @@ void mainDelFiglio() {
 		{
 			struct pacchetto pacchettoApplicativo;
 			int numeroDatiRicevuti;
-			printf("  %d: Presa in consegna richiesta normale.\n", getpid());
+			sprintf(bufferPerLog, "  %d: Presa in consegna richiesta normale.\n", getpid());
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 			
 			closeSocket(&listenNormale);
 			
 			memset((void *)&ricevutoSuAddr, 0, sizeof(ricevutoSuAddr));
 			int lunghezzaAddr = sizeof(ricevutoSuAddr);
 			getpeername(connessioneNormale, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
-			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
+			sprintf(bufferPerLog, "  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 			
 			numeroDatiRicevuti = receivePacchetto(&connessioneNormale, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
@@ -165,12 +164,12 @@ void mainDelFiglio() {
 				
 				//se il client chiede il logout chiudo la connessione
 				if(strcmp(pacchettoApplicativo.tipoOperazione, "uscita") == 0) {					
-					printf("  %d:[%s] Il client chiude la connessione\n", getpid(), pacchettoApplicativo.tipoOperazione);
+					sprintf(bufferPerLog, "  %d:[%s] Il client chiude la connessione\n", getpid(), pacchettoApplicativo.tipoOperazione);
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoApplicativo.messaggio, "Arrivederci");
-					sleep(5);
  					sendPacchetto(&connessioneNormale, &pacchettoApplicativo);
 					
 					numeroDatiRicevuti = 0; //faccio in modo di uscire dal ciclo di attesa di dati da ricevere
@@ -194,7 +193,8 @@ void mainDelFiglio() {
 					
 					//se non trovo il file spedisco un messaggio e avverto il client
 					if(fileDaLeggere == NULL) {
-						printf("  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.nomeFile);
+						sprintf(bufferPerLog, "  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.nomeFile);
+						writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 						bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 						
 						strcpy(pacchettoApplicativo.tipoOperazione, "leggi file");
@@ -208,7 +208,8 @@ void mainDelFiglio() {
 					
 					//Se trovo il file lo spedisco al client.
 					else {
-						printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo.tipoOperazione, nomeFileDaLeggere);
+						sprintf(bufferPerLog, "  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo.tipoOperazione, nomeFileDaLeggere);
+						writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 // 						int dimensioneDelFile, numeroDiByteLetti;
 // 						char bufferFileLetto[sizeof(pacchettoApplicativo.messaggio)];
 			
@@ -259,7 +260,8 @@ void mainDelFiglio() {
 				}
 				
 				else {
-					printf("  %d:[%s] Operazione non riconosciuta\n",getpid(), pacchettoApplicativo.tipoOperazione,ntohs(ricevutoSuAddr.sin_port));
+					sprintf(bufferPerLog, "  %d:[%s] Operazione non riconosciuta\n",getpid(), pacchettoApplicativo.tipoOperazione,ntohs(ricevutoSuAddr.sin_port));
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "Sconosciuta");
@@ -272,7 +274,8 @@ void mainDelFiglio() {
 				}
 			}
 			
-			printf("  %d: Richiesta elaborata!\n", getpid());
+			sprintf(bufferPerLog, "  %d: Richiesta elaborata!\n", getpid());
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 			
 			exit(0);
 		}
@@ -292,14 +295,16 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 
 			closeSocket(&listenDiServizio);
 			
-			printf("  %d: Presa in consegna richiesta di servizio.\n", getpid());
+			sprintf(bufferPerLog, "  %d: Presa in consegna richiesta di servizio.\n", getpid());
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					
 			memset((void *)&ricevutoSuAddr, 0, sizeof(ricevutoSuAddr));
 			
 			//se voglio sapere chi mi manda la richiesta..
 			int lunghezzaAddr = sizeof(ricevutoSuAddr);
 			getpeername(connessioneDiServizio, (struct sockaddr *) &ricevutoSuAddr, &lunghezzaAddr);
-			printf("  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
+			sprintf(bufferPerLog,"  %d: Ricevuta richiesta dall'indirizzo IP: %s:%d. Elaboro la richiesta di servizio...\n", getpid(), (char*)inet_ntoa(ricevutoSuAddr.sin_addr), ntohs(ricevutoSuAddr.sin_port));
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 
 			dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
 		
@@ -321,7 +326,8 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						
 						listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 					
-						printf("  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevuto.timeStamp);
+						sprintf(bufferPerLog, "  %d:[%s] Ricevuta richiesta di commit da parte del server %d\n", getpid(), pacchettoRicevuto.tipoOperazione, pacchettoRicevuto.timeStamp);
+						writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 						
 						int i;
 						
@@ -329,7 +335,8 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						for(i = 0; i < 10; i++) {
 							//se sto usando il file controllo se io ho più priorità dell'altro aspetto fino a che non finisco di usarlo
 							while(strcmp(listaFile[i].nomeFile, pacchettoRicevuto.nomeFile) == 0 && ID_numerico_server < pacchettoRicevuto.timeStamp) {
-								printf("  %d: Sto usando il file \'%s\', il server %d dovrà aspettare\n", getpid(), listaFile[i].nomeFile, pacchettoRicevuto.timeStamp);
+								sprintf(bufferPerLog, "  %d: Sto usando il file \'%s\', il server %d dovrà aspettare\n", getpid(), listaFile[i].nomeFile, pacchettoRicevuto.timeStamp);
+								writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 								sleep(10);
 							}
 						}
@@ -338,7 +345,9 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 						strcpy(pacchettoDaInviare.tipoOperazione, "conferma per il commit");
 						strcpy(pacchettoDaInviare.messaggio, "ok");
 						
-						printf("  %d: Invio la conferma al server %d\n", getpid(), pacchettoRicevuto.timeStamp);
+						sprintf(bufferPerLog, "  %d: Invio la conferma al server %d\n", getpid(), pacchettoRicevuto.timeStamp);
+						writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
+						
 						sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);	
 						
 						dimensioneDatiRicevuti = 0;
@@ -359,7 +368,8 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					strcat(nomeFileConAggiornamenti, idTransazione);
 					strcat(nomeFileConAggiornamenti, ".marina");
 					
-					printf("  %d: Sto per aggiornare il file: \'%s\'\n", getpid(), nomeFileDaAggiornare);
+					sprintf(bufferPerLog, "  %d: Sto per aggiornare il file: \'%s\'\n", getpid(), nomeFileDaAggiornare);
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					
 					//avviso il client che sono pronto a ricevere e gli dico anche qual'è il nome del file che deve mandarmi. Serve per la funzione spedisci file che è richiamata nel client
 					bzero(&pacchettoDaInviare, sizeof(struct pacchetto));
@@ -381,17 +391,43 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					fclose(fileDaAggiornare);
 					fclose(fileConAggiornamenti);
 					
-					if(remove(nomeFileConAggiornamenti) < 0)
-						printf("  %d: Errore durante la rimozione del file \'%s\'\n", getpid(), nomeFileConAggiornamenti);
+					if(remove(nomeFileConAggiornamenti) < 0) {
+						sprintf(bufferPerLog, "  %d: Errore durante la rimozione del file \'%s\'\n", getpid(), nomeFileConAggiornamenti);
+						writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
+					}
 					
 					dimensioneDatiRicevuti = 0;
+				}
+				
+				else if(strncmp(pacchettoRicevuto.tipoOperazione,"copia file") == 0) {
+					//marina da modificare
+					FILE fileDaLeggere;
+					char nomeFileDaLeggere[500];
+					
+					strcpy(nomeFileDaLeggere, pacchettoRicevuto.nomeFile);
+					strcat(nomeFileDaLeggere,directoryDeiFile);
+										
+					fileDaLeggere = fopen(nomeFileDaLeggere, "rb");
+					bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
+					//se non trovo il file spedisco un messaggio e avverto il client
+					if(fileDaLeggere == NULL) {
+						printf("  %d: File \'%s\'non trovato\n", getpid(), pacchettoRicevuto.nomeFile);
+						
+						strcpy(pacchettoRicevuto.tipoOperazione, "non inviare");
+					}
+					
+					if(strcmp(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere") == 0) {
+						spedisciFile(&connessioneDiServizio, fileDaLeggere, &pacchettoRicevuto);	
+						bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
+					}
 				}
 				
 				//richiesta di uscita
 				else if (strcmp(pacchettoRicevuto.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
 					
-					printf("  %d:[%s] Il client chiude la connessione\n",getpid(), pacchettoRicevuto.tipoOperazione);
+					sprintf(bufferPerLog, "  %d:[%s] Il client chiude la connessione\n",getpid(), pacchettoRicevuto.tipoOperazione);
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					
 					strcpy(pacchettoDaInviare.tipoOperazione, "Arrivederci");
 					strcpy(pacchettoDaInviare.messaggio, "Arrivederci");
@@ -408,14 +444,16 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					
 // 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
 					sendPacchetto(&connessioneDiServizio, &pacchettoDaInviare);
-					printf("  %d:[%s] Operazione non riconosciuta.\n", getpid(), pacchettoRicevuto.tipoOperazione);
+					sprintf(bufferPerLog, "  %d:[%s] Operazione non riconosciuta.\n", getpid(), pacchettoRicevuto.tipoOperazione);
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					
 					bzero(&pacchettoRicevuto, sizeof(pacchettoRicevuto));
 					dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(pacchettoRicevuto));
 				}
 			}
 			
-			printf("  %d: Richiesta elaborata!\n", getpid());
+			sprintf(bufferPerLog, "  %d: Richiesta elaborata!\n", getpid());
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 			
 			exit(0);
 		}
@@ -438,8 +476,8 @@ void mainFiglioAgrawala() {
 
 		while(1) {
 			
-			printf("   %d: In attesa di richieste per agrawala..\n", getpid());
-			
+			sprintf(bufferPerLog, "   %d: In attesa di richieste per agrawala..\n", getpid());
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 			//rimango bloccato fino a che non viene riempito l'array che contiene i file di cui bisogna fare il commit
 			for(i = 0; strlen(listaFile[i].nomeFile) == 0; i++) {
 				if(i == 9) {
@@ -448,8 +486,10 @@ void mainFiglioAgrawala() {
 				}
 			}
 			
-			printf("   %d: Trovata richiesta di commit. File: \'%s\', i: %d\n", getpid(), listaFile[i].nomeFile, i);
-			printf("   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
+			sprintf(bufferPerLog, "   %d: Trovata richiesta di commit. File: \'%s\', i: %d\n", getpid(), listaFile[i].nomeFile, i);
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
+			sprintf(bufferPerLog, "   %d: Chiedo agli altri server la conferma per poter procedere..\n", getpid());
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 			
 			int iDelWhile = 0;
 			
@@ -461,16 +501,20 @@ void mainFiglioAgrawala() {
 				}
 				
 				createSocketStream(&socketPerRichiestaConferme);
-				printf("   %d: Sto per connettermi all'ip: ", getpid());
-				stampaIpEporta(&indirizzoServer[iDelWhile]);
-				printf("\n");
+				sprintf(bufferPerLog, "   %d: Sto per connettermi all'ip: ", getpid());
+				writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
+				stampaIpEportaConLog(&indirizzoServer[iDelWhile]);
+				sprintf(bufferPerLog, "\n");
+				writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 0);
 				connectSocket(&socketPerRichiestaConferme, &indirizzoServer[iDelWhile]);
 				
 				//Vuol dire che il server non è attivo
 				if(errno == 111) {
-					printf("   %d: Il server con IP ", getpid());
-					stampaIpEporta(&indirizzoServer[iDelWhile]);
-					printf (" sembra non essere attivo.\n");
+					sprintf(bufferPerLog, "   %d: Il server con IP ", getpid());
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
+					stampaIpEportaConLog(&indirizzoServer[iDelWhile]);
+					sprintf(bufferPerLog, " sembra non essere attivo.\n");
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 0);
 					
 					closeSocket(&socketPerRichiestaConferme);
 					confermeRicevute++;
@@ -482,7 +526,8 @@ void mainFiglioAgrawala() {
 					strcpy(pacchettoApplicativo.tipoOperazione, "chiedo di fare commit");
 					pacchettoApplicativo.timeStamp = ID_numerico_server;
 					
-					printf("   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
+					sprintf(bufferPerLog, "   %d: Invio richiesta di commit al server %d\n",getpid(), pacchettoApplicativo.timeStamp);
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					sendPacchetto(&socketPerRichiestaConferme, &pacchettoApplicativo);
 					
 					bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
@@ -492,7 +537,8 @@ void mainFiglioAgrawala() {
 					
 					//se il server mi da la conferma che posso fare il commit mi segno la sua conferma
 					if(strcmp(pacchettoApplicativo.tipoOperazione, "conferma per il commit") == 0 && strcmp(pacchettoApplicativo.messaggio, "ok") == 0) {
-						printf("   %d:[%s] Ricevuta conferma dal server %d\n", getpid(), pacchettoApplicativo.tipoOperazione, iDelWhile);
+						sprintf(bufferPerLog, "   %d:[%s] Ricevuta conferma dal server %d\n", getpid(), pacchettoApplicativo.tipoOperazione, iDelWhile);
+						writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 						confermeRicevute++;
 					}
 					
@@ -501,7 +547,8 @@ void mainFiglioAgrawala() {
 				}
 			}
 			
-			printf("   %d: Ora posso fare il commit, ho ricevuto tutte le conferme!\n", getpid());
+			sprintf(bufferPerLog,"   %d: Ora posso fare il commit, ho ricevuto tutte le conferme!\n", getpid());
+			writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 			
 			//-------- Scrivo nella Pipe per informare l'altro processo che agrawala è ok e può scrivere il file -----
 			strcpy(percorsoFileFifo, "/tmp/");
@@ -523,6 +570,7 @@ void mainFiglioAgrawala() {
 }
 
 void interrompi() {
-	printf("%d: Il server è stato terminato da console\n", getpid());
+	sprintf(bufferPerLog, "%d: Il server è stato terminato da console\n", getpid());
+	writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 	exit(0);
 }

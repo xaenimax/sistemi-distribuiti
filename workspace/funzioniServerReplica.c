@@ -9,26 +9,36 @@
 //Effettua la "dir" nella cartella del filesystem distribuito e la invia al client connesso al socket
 
 void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta);
+
 void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, char *percorsoFileCondivisi, char* indirizzoDNS);
 
+void writeFileWithLock(int descrittoreFile, char *contenutoDaScrivere, int stampaAvideo, int aggiungiData);
+
+void stampaIpEportaConLog(struct sockaddr_in *indirizzoIP);
+
 void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
-	int numeroDiFileTrovati = 0;
+	int numeroDiFileTrovati = 0, descrittoreLogFileServer;
 	int i;
 	struct direct **fileTrovati;
 	struct pacchetto pacchettoDaInviare;
 	char stringaDiFileTrovati[1024];
+	char stringaDaStampare[500];
 	
 	//svuoto il buffer di invio
 	bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));
 	
-	printf("  %d: Invio la lista file, come richiesto.\n", getpid());
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
+	
+	sprintf(stringaDaStampare, "  %d: Invio la lista file, come richiesto.\n", getpid());
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 
 	numeroDiFileTrovati = scandir(directoryDeiFile, &fileTrovati, NULL, alphasort);
 		/* If no files found, make a non-selectable menu item5AA091C9A091ABCF */
 	if 		(numeroDiFileTrovati <= 0) {
 		strcpy(pacchettoDaInviare.tipoOperazione, "lista file");
 		strcpy(pacchettoDaInviare.messaggio, "Nessun file trovato!");
-		printf("  %d: Nessun file trovato!\n", getpid());
+		sprintf(stringaDaStampare, "  %d: Nessun file trovato!\n", getpid());
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	}
 	else {
 		for (i=1;i<numeroDiFileTrovati+1;++i) {
@@ -38,12 +48,19 @@ void inviaListaFile(int *socketConnesso, char *directoryDeiFile) {
 	}
 	
 	sendPacchetto(socketConnesso, &pacchettoDaInviare, sizeof(pacchettoDaInviare), 0);
+	close(descrittoreLogFileServer);
 }
 
-int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond, int idServer, char *directoryDeiFile){
+int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicativo,int *socketConnesso, int idSegmentoMemCond, int idServer, char *directoryDeiFile) {
 	
-	printf("  %d [%s]Creazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
+	int descrittoreLogFileServer;
+	char stringaDaStampare[500];
 	
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
+	
+	sprintf(stringaDaStampare, "  %d [%s]Creazione dei percorsi file \n",getpid(),pacchettoApplicativo->tipoOperazione);
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+		
 	unsigned long int dimensioneFile=0,numeroByteLetti=0;
 	int numeroDiPartiDaLeggere;
 	char *buffer, *stringaImmessa, *percorsoOrigine, *percorsoDestinazione,*nomeFileTemporaneo,*nomeDaSostituire, *nomeFileDaSostituire;
@@ -68,45 +85,56 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	strcpy(percorsoOrigine,directoryDeiFile);
 	strcat(percorsoOrigine,nomeFileDaSostituire);
 	
-	printf("  %d: [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
+	sprintf(stringaDaStampare, "  %d: [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+	
 	fileDiScritturaMomentanea=fopen(percorsoDestinazione,"a");
 	// apro i file con relativi controlli di errore
 	if ((fileDiScritturaMomentanea<0)){
-		printf("  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
+		sprintf(stringaDaStampare, "  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+		
 		bzero(pacchettoApplicativo,sizeof(struct pacchetto));
 		strcpy(pacchettoApplicativo->tipoOperazione,"chiudi connessione");
 		strcpy(pacchettoApplicativo->messaggio,"Errore nella creazione del file temporaneo");
 		sendPacchetto(socketConnesso, pacchettoApplicativo);
 		perror("Errore nella creazione del file temporaneo");
+		close(descrittoreLogFileServer);
 		return 0;
 	}
 	
-	printf("  %d [%s] Apro il secondo file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,percorsoOrigine);
+	sprintf(stringaDaStampare, "  %d [%s] Apro il secondo file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,percorsoOrigine);
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	fileOriginaleDaCopiare = fopen(percorsoOrigine,"a");		
 	
 	if(fileOriginaleDaCopiare<0){
-		printf("  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->nomeFile);
+		sprintf(stringaDaStampare, "  %d [%s] Errore nell'apertura del file da copiare %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->nomeFile);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+		
 		bzero(pacchettoApplicativo,sizeof(struct pacchetto));
 		strcpy(pacchettoApplicativo->tipoOperazione,"chiudi connessione");
 		strcpy(pacchettoApplicativo->messaggio,"Errore nell'apertura del file originale");
 		sendPacchetto(socketConnesso,pacchettoApplicativo);
 		perror("Errore nell'apertura del file originale");
+		close(descrittoreLogFileServer);
 		return(0);
 	}
 	
 	if(fileOriginaleDaCopiare==NULL){
-		printf("  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo->tipoOperazione, pacchettoApplicativo->nomeFile);
+		sprintf(stringaDaStampare, "  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo->tipoOperazione, pacchettoApplicativo->nomeFile);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 		strcpy(pacchettoApplicativo->tipoOperazione, "scrivi file");
 		strcpy(pacchettoApplicativo->messaggio, "File non trovato\n");
 		sendPacchetto(socketConnesso, pacchettoApplicativo);
-		printf("File non trovato\n");
+		close(descrittoreLogFileServer);
 		return 0;
 	}
 					
 	//Se trovo il file lo spedisco al client.
 	else {
-		printf("  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
+		sprintf(stringaDaStampare, "  %d:[%s] File \'%s\' trovato!\n",getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	}
 /*
 	if(copiaFile(fileOriginaleDaCopiare, fileDiScritturaMomentanea, NULL, NULL, 0) > 0)
@@ -123,14 +151,17 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	
 	while((strcmp(pacchettoApplicativo->messaggio,"commit")!=0)&&(strcmp(pacchettoApplicativo->messaggio,"abort")!=0))
 	{
-		printf("  %d [%s] Invio messaggio al client\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		sprintf(stringaDaStampare, "  %d [%s] Invio messaggio al client\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		
 		sendPacchetto(socketConnesso,pacchettoApplicativo);
-		printf("  %d [%s] In attesa di ricezione dal client..\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		sprintf(stringaDaStampare, "  %d [%s] In attesa di ricezione dal client..\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		bzero(pacchettoApplicativo,sizeof(struct pacchetto));
 		receivePacchetto(socketConnesso, pacchettoApplicativo,sizeof(struct pacchetto));
 		if(errno==11){
-			printf("  %d: [%s] Il client non risponde da 30 secondi. Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
+			sprintf(stringaDaStampare, "  %d: [%s] Il client non risponde da 30 secondi. Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	//		closeSocket(socketConnesso); per ora lo lascio commentato e vedo che fa
 			remove(nomeFileDaSostituire);
 			free(nomeDaSostituire);
@@ -141,11 +172,13 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			free(nomeFileTemporaneo);
 			free(percorsoOrigine);
 			//operazione terminata con errore
+			close(descrittoreLogFileServer);
 			return 0;
 		}
 		if((strcmp(pacchettoApplicativo->idTransazione,IDgenerato)==0)&&(strcmp(pacchettoApplicativo->tipoOperazione,"scrivi file")==0)){
 			
-			printf("  %d [%s] Messaggio ricevuto: %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->messaggio);
+			sprintf(stringaDaStampare, "  %d [%s] Messaggio ricevuto: %s\n",getpid(),pacchettoApplicativo->tipoOperazione,pacchettoApplicativo->messaggio);
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 
 			if(strcmp(pacchettoApplicativo->messaggio,"commit")==0) {
 				// 		richiama il metodo con l'algoritmo di agrawala
@@ -158,7 +191,8 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 
 				listaFile = (struct fileApertiDalServer*)shmat(idSegmentoMemCond, 0 , 0);
 				
-				printf("  %d:[%s] Commit in esecuzione! File: \'%s\'\n", getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
+				sprintf(stringaDaStampare, "  %d:[%s] Commit in esecuzione! File: \'%s\'\n", getpid(), pacchettoApplicativo->tipoOperazione, nomeFileDaSostituire);
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 				int i;
 				//cerco nell'array dei file, la prima posizione vuota e vado ad inserire il mio file
 				for(i = 0; i < 10 && strlen(listaFile[i].nomeFile) != 0; i++) {
@@ -185,14 +219,16 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				}
 				//----------------
 				
-				printf("  %d: Agrawala ha detto si'. :D Avviso il client che il commit è andato a buon fine\n", getpid());
+				sprintf(stringaDaStampare, "  %d: Agrawala ha detto si'. :D Avviso il client che il commit è andato a buon fine\n", getpid());
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 				
 				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 				strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
 				strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
 				sendPacchetto(socketConnesso, pacchettoApplicativo);
 				
-				printf("  %d: Spedita la conferma al client.\n", getpid());
+				sprintf(stringaDaStampare, "  %d: Spedita la conferma al client.\n", getpid());
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 				
 				strcpy(nomeFileTemporaneo,IDgenerato);
 				strcat(nomeFileTemporaneo,".marina");
@@ -211,17 +247,20 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 				strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 				strcpy(pacchettoApplicativo->messaggio,"commit");
-				printf("  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
+				sprintf(stringaDaStampare, "  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 			}
 		
 			else if(strcmp(pacchettoApplicativo->messaggio,"abort")==0)
 			{
 				if(remove(percorsoDestinazione)<0){
-					printf("  %d [%s]Errore nella cancellazione del file momentaneo abortito in scrittura",getpid(),pacchettoApplicativo->tipoOperazione);
+					sprintf(stringaDaStampare, "  %d [%s]Errore nella cancellazione del file momentaneo abortito in scrittura",getpid(),pacchettoApplicativo->tipoOperazione);
+					writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 					perror("");
 					return(0);
 				}
-				printf("  %d [%s]Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
+				sprintf(stringaDaStampare, "  %d [%s]Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 						
 				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
@@ -242,17 +281,38 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			strcpy(pacchettoApplicativo->messaggio,"Inserire nuovamente i dati");
 			strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 			strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
-			printf("  %d [%s]Errore dei dati in ricezione\n",getpid(),pacchettoApplicativo->tipoOperazione);
+			sprintf(stringaDaStampare, "  %d [%s]Errore dei dati in ricezione\n",getpid(),pacchettoApplicativo->tipoOperazione);
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		}
 	}
-	printf("chiudo i file in uso\n");
+	sprintf(stringaDaStampare, "  %d: chiudo i file in uso\n",getpid());
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+	
 	if(fclose(fileDiScritturaMomentanea)<0){
-		printf("%d [%s]Errore nella chiusura del file temporaneo\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		sprintf(stringaDaStampare, "%d [%s]Errore nella chiusura del file temporaneo\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		perror("");
+		free(nomeDaSostituire);
+		free(nomeFileDaSostituire);
+		free(buffer);
+		free(stringaImmessa);
+		free(percorsoDestinazione);
+		free(nomeFileTemporaneo);
+		free(percorsoOrigine);
+		close(descrittoreLogFileServer);
 	}
 	if(fclose(fileOriginaleDaCopiare)<0){
-		printf("%d [%s]Errore nella chiusura del file da copiare\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		sprintf(stringaDaStampare, "%d [%s]Errore nella chiusura del file da copiare\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		perror("");
+		free(nomeDaSostituire);
+		free(nomeFileDaSostituire);
+		free(buffer);
+		free(stringaImmessa);
+		free(percorsoDestinazione);
+		free(nomeFileTemporaneo);
+		free(percorsoOrigine);
+		close(descrittoreLogFileServer);		
 	}
 	
 	//ci vuole il free di tutte le malloc
@@ -263,6 +323,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	free(percorsoDestinazione);
 	free(nomeFileTemporaneo);
 	free(percorsoOrigine);
+	close(descrittoreLogFileServer);
 	//operazione completata correttamente
 	return (1);
 }
@@ -270,13 +331,15 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 //Spedisce il file temporaneo con gli aggiornamenti agli altri server
 int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAggiornare, char* idTransazione, int idServer) {
 	
-	int socketPerAggiornamenti, i, portaDNS, idServerPerFileConfNonUsato, portaServerNonUsato;
-	char stringaIndirizzoDNS[20], percorsoFileNonUsato[100]; //Le variabili con il tag nonusato sono state create in quanto la funzione leggiconfigurazione accetta in ingresso anche queste variabili che devono essere settate a un qualche valore. Se non le passo, ho un comportamento anomalo del server
+	int socketPerAggiornamenti, i, portaDNS, idServerPerFileConfNonUsato, portaServerNonUsato, descrittoreLogFileServer;
+	char stringaIndirizzoDNS[20], percorsoFileNonUsato[100], stringaDaStampare[500]; //Le variabili con il tag nonusato sono state create in quanto la funzione leggiconfigurazione accetta in ingresso anche queste variabili che devono essere settate a un qualche valore. Se non le passo, ho un comportamento anomalo del server
 	struct sockaddr_in indirizzoServer[NUMERODISERVERREPLICA];
 	struct pacchetto pacchettoApplicativo;
+	
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
+	
 	//mi porto all'inizio del file
 	fseek(fileConAggiornamenti, 0L, SEEK_SET);
-	printf("IDSERVER : %d", idServer);
 	
 	leggiFileDiConfigurazione(&idServerPerFileConfNonUsato, &portaServerNonUsato, &portaDNS, percorsoFileNonUsato, stringaIndirizzoDNS);
 	
@@ -297,10 +360,12 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 		connectSocket(&socketPerAggiornamenti, &indirizzoServer[i]);
 		
 		if(errno==111){
-			printf("  %d: Non riesco a mandare l'aggiornamento al server",getpid());
-			stampaIpEporta(&indirizzoServer[i]);
-			printf("\n");
-			
+			sprintf(stringaDaStampare, "  %d: Non riesco a mandare l'aggiornamento al server",getpid());
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+			stampaIpEportaConLog(&indirizzoServer[i]);
+			sprintf(stringaDaStampare, "\n");
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 0);
+			close(descrittoreLogFileServer);
 			closeSocket(&socketPerAggiornamenti);
 		}
 		else{
@@ -316,24 +381,31 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 			if(strcmp(pacchettoApplicativo.tipoOperazione, "aggiorna file, pronto a ricevere") == 0) {
 			
 			spedisciFile(&socketPerAggiornamenti, fileConAggiornamenti, &pacchettoApplicativo);
-			printf("  %d: File spedito con successo al server ", getpid());
-			stampaIpEporta(&indirizzoServer[i]);
-			printf("\n");
+			sprintf(stringaDaStampare, "  %d: File spedito con successo al server ", getpid());
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+			stampaIpEportaConLog(&indirizzoServer[i]);
+			sprintf(stringaDaStampare, "\n");
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 0);
 			}
-			else
-				printf("  %d: C\'è stato un\'errore durante l\'invio dell\'aggiornamento al server\n", getpid());
+			else {
+				sprintf(stringaDaStampare, "  %d: C\'è stato un\'errore durante l\'invio dell\'aggiornamento al server\n", getpid());
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+			}
 			
 			closeSocket(&socketPerAggiornamenti);
+			close(descrittoreLogFileServer);
 		}
 	}
 }
 
 //Chiede al DNS tutti gli IP e restituisce un sockaddr_in in cui salva tutti gli indirizzi ESCLUSO quello dell'idNumericoServer che fa la richiesta
 void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServer, char *indirizzoDNSinStringa, int portaDNS, int idNumericoServerCheFaLaRichiesta) {
-	char **IPDaAssegnare, stringaIndirizzoIP[19];
-	int socketPerRichiestaLista, i, portaDaAssegnare, idServer;
+	char **IPDaAssegnare, stringaIndirizzoIP[19], stringaDaStampare[500];
+	int socketPerRichiestaLista, i, portaDaAssegnare, idServer, descrittoreLogFileServer;
 	struct pacchetto pacchettoApplicativo;
 	struct sockaddr_in indirizzoDNS;
+	
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
 	
 	IPDaAssegnare = malloc(NUMERODISERVERREPLICA*19*sizeof(char));
 	for(i = 0; i < NUMERODISERVERREPLICA; i++) //ip:porta
@@ -343,7 +415,8 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 		bzero(&arrayDoveSalvareIndirizziDeiServer[i], sizeof(struct sockaddr_in));
 	}
 	
-	printf("   %d: Chiedo gli IP degli altri server al DNS %s:%d\n", getpid(), indirizzoDNSinStringa, portaDNS);
+	sprintf(stringaDaStampare, "   %d: Chiedo gli IP degli altri server al DNS %s:%d\n", getpid(), indirizzoDNSinStringa, portaDNS);
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	createSocketStream(&socketPerRichiestaLista);
 	bzero(&indirizzoDNS,sizeof(struct sockaddr_in));
 	assegnaIPaServaddr(indirizzoDNSinStringa,portaDNS,&indirizzoDNS);
@@ -357,7 +430,8 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 	receivePacchetto(&socketPerRichiestaLista,&pacchettoApplicativo,sizeof(struct pacchetto));
 	closeSocket(&socketPerRichiestaLista);
 	
-	printf("   %d: IP ricevuti!\n", getpid());
+	sprintf(stringaDaStampare, "   %d: IP ricevuti!\n", getpid());
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	
 	//Prendo il pacchetto ricevuto e mi salvo i tre indirizzi IP in tre char di indirizzi e 3 array di porte. Sono costretto a fare un for separato solo per questo perchè altrimento la strtok non funziona.
 	for(i=0;i<NUMERODISERVERREPLICA;i++){
@@ -381,6 +455,8 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 			assegnaIPaServaddr(stringaIndirizzoIP,portaDaAssegnare,&arrayDoveSalvareIndirizziDeiServer[i]);
 		}
 	}
+	
+	close(descrittoreLogFileServer);
 }
 
 
@@ -388,13 +464,17 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, char *percorsoFileCondivisi, char* indirizzoDNS) {
 
 	FILE *fileDiConfigurazione;
-	int numeroDiParametriDaLeggere = 5, i;
-	char *contenutoFileTok, contenutoFilediConfigurazione[500], rigaFileDiconfigurazione[numeroDiParametriDaLeggere][100]; //contenutoFilediConfigurazione contiene tutto il file, numeroDiParametriDaLeggere sono le righe del file di configurazione da leggere
+	int numeroDiParametriDaLeggere = 5, i, descrittoreLogFileServer;
+	char *contenutoFileTok, contenutoFilediConfigurazione[500], rigaFileDiconfigurazione[numeroDiParametriDaLeggere][100], stringaDaStampare[500]; //contenutoFilediConfigurazione contiene tutto il file, numeroDiParametriDaLeggere sono le righe del file di configurazione da leggere
 	
-	fileDiConfigurazione = fopen(percorsoFileDiConfigurazione, "r");
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
+	
+	fileDiConfigurazione = fopen(percorsoFileDiConfigurazione, "r");	
 	
 	if(fileDiConfigurazione == NULL) {
-		printf("%d: Il file di configurazione \'%s\' non esiste. Impossibile avviare il server\n", getpid(), percorsoFileDiConfigurazione);
+		sprintf(stringaDaStampare, "%d: Il file di configurazione \'%s\' non esiste. Impossibile avviare il server\n", getpid(), percorsoFileDiConfigurazione);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+		close(descrittoreLogFileServer);
 		exit(-1);
 	}
 	
@@ -445,13 +525,15 @@ void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, c
 // 	printf("%d, %d, %s, %s %d %d", idServer, porta, percorsoFileCondivisi, indirizzoDNS, portaDNS);
 }
 
-
+//sincronizza i file del server rispetto agli altri al primo avvio della macchina.
 int sincronizzazioneFile(char *directoryDeiFile){
-	char riferimento_server[600],indirizzoIpDelServer[100];
-	int connessioneSincr,i,portaDelServer;
+	char riferimento_server[600],indirizzoIpDelServer[100],stringaDaStampare[500];
+	int connessioneSincr,i,portaDelServer,descrittoreLogFileServer;
 	struct timeval tempoDiAttesa;
 	struct sockaddr_in servaddr;
 	struct pacchetto pacchettoApplicativo;
+	
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
 	
 	tempoDiAttesa.tv_sec=30;
 	errno=111;
@@ -463,40 +545,48 @@ int sincronizzazioneFile(char *directoryDeiFile){
 		setsockopt(connessioneSincr, SOL_SOCKET, SO_RCVTIMEO, (struct timeval*)&tempoDiAttesa, sizeof(struct timeval));
 		contattaDNS(riferimento_server);
 		separaIpEportaDaStringa(riferimento_server, indirizzoIpDelServer, &portaDelServer, &idServer);
+		portaDelServer=portaDelServer+1000;
 		assegnaIPaServaddr(indirizzoIpDelServer, portaDelServer, &servaddr);
-		printf("Provo a connettermi al server %d con ip ", idServer);
-		stampaIpEporta(&servaddr);
-		printf("\n");
+		sprintf(stringaDaStampare, "Provo a connettermi al server %d con ip ", idServer);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+		stampaIpEportaConLog(&servaddr);
+		sprintf(stringaDaStampare, "\n");
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 0);
 		connectSocket(&connessioneSincr, &servaddr);
 		//chiudo il socket solo se non riesco a connettermi
 		if(errno == 111)
 			closeSocket(&connessioneSincr);
 	}
 	if(i == 4 && errno == 111) {
-		printf("Non risulta nessun server attivo! :(\n");
+		sprintf(stringaDaStampare, "Non risulta nessun server attivo! :(\n");
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+		close(descrittoreLogFileServer);
 		//exit(0);
 		return (-1);
 	}
 	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
 	//chiede la lista dei file da copiare
 	strcpy(pacchettoApplicativo.tipoOperazione,"lista file");
+	printf("chiedo l'operazione %s\n",pacchettoApplicativo.tipoOperazione);
 	sendPacchetto(&connessioneSincr,&pacchettoApplicativo);
 	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
 	receivePacchetto(&connessioneSincr,&pacchettoApplicativo,sizeof(struct pacchetto));
-	printf("La lista file ricevuta %s",pacchettoApplicativo.messaggio);
+	sprintf(stringaDaStampare, "La lista file ricevuta %s",pacchettoApplicativo.messaggio);
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	
 	char *nomeFile=strtok(pacchettoApplicativo.messaggio,"\n");
 	generaIDtransazione(pacchettoApplicativo.idTransazione);
-	
+	printf("Primo file %s con id %s\n",nomeFile,pacchettoApplicativo.idTransazione);
 	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-	strcpy(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere");
+	strcpy(pacchettoApplicativo.tipoOperazione, "copia file");
 	strcpy(pacchettoApplicativo.nomeFile, nomeFile);
 	
 	//dico al client che sono pronto a ricevere
 	sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
-	
+	//ricevo la dimensione del file
 	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+	printf("Ricevuto %s\n",pacchettoApplicativo.messaggio);
 	
 	char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
 	strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
@@ -505,7 +595,7 @@ int sincronizzazioneFile(char *directoryDeiFile){
 	riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 							
 	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));		
+//	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));		
 
 	while(nomeFile!=NULL){
 		nomeFile=strtok(pacchettoApplicativo.messaggio,NULL);
@@ -529,15 +619,51 @@ int sincronizzazioneFile(char *directoryDeiFile){
 		riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
 								
 		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
-
-		
-		
-		
+//		receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
 	}
 	//controlla le operazioni di copia file deve essere contrario rispetto a client server
 	
-	
+	close(descrittoreLogFileServer);
 	
 	return 1;
+}
+
+
+void writeFileWithLock(int descrittoreFile, char *contenutoDaScrivere, int stampaAvideo, int aggiungiData) {
+
+	char stringaFinaleDaScrivere[600];
+	
+	if(aggiungiData > 0) {
+		time_t dataEoraTimeT;
+		struct tm * dataEora;
+
+		time(&dataEoraTimeT);
+		dataEora = localtime(&dataEoraTimeT);
+
+		strftime(stringaFinaleDaScrivere,80,"%d/%m/%y %X ",dataEora);
+		strcat(stringaFinaleDaScrivere, contenutoDaScrivere);
+	}
+	else
+		strcpy(stringaFinaleDaScrivere, contenutoDaScrivere);
+	
+	struct flock opzioniDiFileLock = { F_WRLCK, SEEK_SET, 0, 0, 0 };
+	struct flock opzioniDiFileUnlock = { F_UNLCK, SEEK_SET, 0, 0, 0 };
+	
+	fcntl(descrittoreFile, F_SETLKW, &opzioniDiFileLock);
+	write(descrittoreFile,stringaFinaleDaScrivere,strlen(stringaFinaleDaScrivere));
+	fcntl(descrittoreFile, F_SETLKW, &opzioniDiFileUnlock);
+	
+	if(stampaAvideo > 0)
+		printf("%s", stringaFinaleDaScrivere);
+}
+
+void stampaIpEportaConLog(struct sockaddr_in *indirizzoIP) {
+
+	int descrittoreLogFileServer;
+	char stringaDaStampare[500];
+	
+	descrittoreLogFileServer = open(percorsoFileDiLog, O_WRONLY|O_CREAT|O_APPEND, 0666);
+	
+	sprintf(stringaDaStampare, "%s:%d", inet_ntoa(indirizzoIP->sin_addr), ntohs(indirizzoIP->sin_port));
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 0);
 }
