@@ -382,7 +382,7 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					fileDaAggiornare = fopen(nomeFileDaAggiornare, "a");
 					fileConAggiornamenti = fopen(nomeFileConAggiornamenti, "rb");
 					
-					copiaFile(fileConAggiornamenti, fileDaAggiornare, NULL, NULL, 0);
+					copiaFile(fileConAggiornamenti, fileDaAggiornare, NULL, NULL, 0, 0);
 					
 					fclose(fileDaAggiornare);
 					fclose(fileConAggiornamenti);
