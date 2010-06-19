@@ -222,13 +222,13 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				sprintf(stringaDaStampare, "  %d: Agrawala ha detto si'. :D Avviso il client che il commit è andato a buon fine\n", getpid());
 				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 				
-				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-				strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
-				strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
-				sendPacchetto(socketConnesso, pacchettoApplicativo);
-				
+// 				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+// 				strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
+// 				strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
+// 				sendPacchetto(socketConnesso, pacchettoApplicativo);
+/*				
 				sprintf(stringaDaStampare, "  %d: Spedita la conferma al client.\n", getpid());
-				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);*/
 				
 				strcpy(nomeFileTemporaneo,IDgenerato);
 				strcat(nomeFileTemporaneo,".marina");
@@ -243,10 +243,21 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				if(copiaFile > 0)
 					remove(percorsoDestinazione);
 				
+				//spedisco la conferma al client
+				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+				strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
+				strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
+				sendPacchetto(socketConnesso, pacchettoApplicativo);
+				sprintf(stringaDaStampare, "  %d: Spedita la conferma al client.\n", getpid());
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+				
+				//queste righe mi servono per uscire dal ciclo while
 				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 				strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 				strcpy(pacchettoApplicativo->messaggio,"commit");
+				//queste due righe mi servono per uscire dal ciclo while
 				sprintf(stringaDaStampare, "  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
 				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 			}
