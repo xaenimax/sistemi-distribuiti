@@ -16,4 +16,6 @@ void stampaIpEporta(struct sockaddr_in *indirizzoIP);
 
 // void riceviFile(int *socketConnesso, char *nomeFileDaScrivereConPercorso, struct pacchetto *pacchettoApplicativo) ;
 
-int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *percorsoFileOriginale, char *percorsoFileDiDestinazione, int apriFile);
+int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *percorsoFileOriginale, char *percorsoFileDiDestinazione, int apriFile,  int scritturaConLock);
+
+void writeFileWithLock(int descrittoreFile, char *contenutoDaScrivere, int stampaAvideo, int aggiungiData);

@@ -132,8 +132,9 @@ void riceviFile(int *socketConnesso, char *nomeFileDaScrivereConPercorso, struct
 }
 
 //copia un file in un altro. Se apriFile è > 0 apre i file prima di copiarli, altrimenti il file va aperto prima di richiamare la funzione
-int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *percorsoFileOriginale, char *percorsoFileDiDestinazione, int apriFile) {
-	int dimensioneFile, numeroDiPartiDaLeggere;
+//Se scritturaConLock > 0 la funzione prevede in ingresso un descrittore file fileOriginaleDaCopiare di cui bisogna fare la fopen fuori se apriFile è = 0. Inoltre, bisogna passare percorsoFileDiDestinazione per la destinazione perchè la funzione che fa la scrittura atomica ha bisogno del percorso del file da scrivere e non del descrittore.
+int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *percorsoFileOriginale, char *percorsoFileDiDestinazione, int apriFile, int scritturaConLock) {
+	int dimensioneFile, numeroDiPartiDaLeggere, descrittoreFilePerWriteLock;
 	char bufferTemporaneo[500];
 	
 	if(apriFile > 0) {
@@ -153,6 +154,9 @@ int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *perc
 		}
 	}
 	
+	if(scritturaConLock > 0)
+		descrittoreFilePerWriteLock = open(percorsoFileDiDestinazione, O_WRONLY|O_APPEND, 0666);
+	
 	fseek(fileOriginaleDaCopiare,0L,SEEK_END);
 	dimensioneFile= ftell(fileOriginaleDaCopiare);
 	fseek(fileOriginaleDaCopiare,0L,SEEK_SET);
@@ -163,14 +167,20 @@ int copiaFile(FILE *fileOriginaleDaCopiare, FILE *fileDiDestinazione, char *perc
 	while(numeroDiPartiDaLeggere!=0){
 		bzero(bufferTemporaneo,sizeof(bufferTemporaneo));
 		fread( bufferTemporaneo,1, sizeof(bufferTemporaneo), fileOriginaleDaCopiare);
-		fwrite( bufferTemporaneo, 1, sizeof(bufferTemporaneo), fileDiDestinazione);
+		if(scritturaConLock > 0)
+			writeFileWithLock(descrittoreFilePerWriteLock, bufferTemporaneo,0,0);
+		else
+			fwrite( bufferTemporaneo, 1, sizeof(bufferTemporaneo), fileDiDestinazione);
 		numeroDiPartiDaLeggere--;
 	}
 	if(numeroDiPartiDaLeggere==0){
 		bzero(bufferTemporaneo,sizeof(bufferTemporaneo));
 		int numeroDiPartiDaLeggereAncora=dimensioneFile % sizeof(bufferTemporaneo);
 		fread( bufferTemporaneo,1, numeroDiPartiDaLeggereAncora, fileOriginaleDaCopiare);
-		fwrite( bufferTemporaneo, 1, numeroDiPartiDaLeggereAncora, fileDiDestinazione);
+		if(scritturaConLock > 0)
+			writeFileWithLock(descrittoreFilePerWriteLock, bufferTemporaneo,0,0);
+		else
+			fwrite( bufferTemporaneo, 1, sizeof(bufferTemporaneo), fileDiDestinazione);
 	}
 	
 	return 1;
@@ -184,4 +194,33 @@ void svuotaStrutturaListaFile(struct fileApertiDalServer *listaFile) {
 
 void stampaIpEporta(struct sockaddr_in *indirizzoIP) {
 		printf("%s:%d", inet_ntoa(indirizzoIP->sin_addr), ntohs(indirizzoIP->sin_port));
+}
+
+
+void writeFileWithLock(int descrittoreFile, char *contenutoDaScrivere, int stampaAvideo, int aggiungiData) {
+
+	char stringaFinaleDaScrivere[600];
+	
+	if(aggiungiData > 0) {
+		time_t dataEoraTimeT;
+		struct tm * dataEora;
+
+		time(&dataEoraTimeT);
+		dataEora = localtime(&dataEoraTimeT);
+
+		strftime(stringaFinaleDaScrivere,80,"%d/%m/%y %X ",dataEora);
+		strcat(stringaFinaleDaScrivere, contenutoDaScrivere);
+	}
+	else
+		strcpy(stringaFinaleDaScrivere, contenutoDaScrivere);
+	
+	struct flock opzioniDiFileLock = { F_WRLCK, SEEK_SET, 0, 0, 0 };
+	struct flock opzioniDiFileUnlock = { F_UNLCK, SEEK_SET, 0, 0, 0 };
+	
+	fcntl(descrittoreFile, F_SETLKW, &opzioniDiFileLock);
+	write(descrittoreFile,stringaFinaleDaScrivere,strlen(stringaFinaleDaScrivere));
+	fcntl(descrittoreFile, F_SETLKW, &opzioniDiFileUnlock);
+	
+	if(stampaAvideo > 0)
+		printf("%s", stringaFinaleDaScrivere);
 }
