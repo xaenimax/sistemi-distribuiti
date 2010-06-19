@@ -19,6 +19,7 @@
 
 #define percorsoFileDiConfigurazione	"configurazioneServer.cfg"
 #define NUMERODISERVERREPLICA	3
+#define percorsoFileDiLog	"serverReplica.log"
 
 struct pacchetto {
 	char tipoOperazione[200];
@@ -32,3 +33,4 @@ struct fileApertiDalServer {
 	char nomeFile[100];
 	char idTransazione[11];
 };
+

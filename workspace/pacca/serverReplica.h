@@ -9,7 +9,7 @@
 #define MAXLINE     1024
 
 int pid, pidServizio, i, ID_numerico_server, pidFiglioAgrawala, portaDiServizio, portaRichiesteNormali, chiaveMemCondivisa, portaDNS;
-int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio;
+int listenNormale, connessioneNormale, listenDiServizio, connessioneDiServizio, descrittoreLogFileServer;
 struct sockaddr_in indirizzoNormale, indirizzoDiServizio, ricevutoSuAddr,indirizzoAgrawala;
-char directoryDeiFile[100], stringaIndirizzoDNS[20];
+char directoryDeiFile[100], stringaIndirizzoDNS[20], bufferPerLog[500];;
 int idSegmentoMemCond;
