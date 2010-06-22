@@ -88,6 +88,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 	sprintf(stringaDaStampare, "  %d: [%s] Apro il primo file temporaneo %s\n", getpid(),pacchettoApplicativo->tipoOperazione,percorsoDestinazione);
 	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	
+	//Creo il file richiesto dall'utente
 	fileDiScritturaMomentanea=fopen(percorsoDestinazione,"a");
 	// apro i file con relativi controlli di errore
 	if ((fileDiScritturaMomentanea<0)){
@@ -130,6 +131,15 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		close(descrittoreLogFileServer);
 		return 0;
 	}
+	
+	//Lo chiudo perché è il file originale che dovrò scrivere. Faccio queste operazioni solo per crearlo, la funzione copia file si occuperà di aggiornarne il contenuto in modalità con lock
+	if(fclose(fileOriginaleDaCopiare)<0){
+		sprintf(stringaDaStampare, "%d [%s]Errore nella chiusura del file da copiare\n",getpid(),pacchettoApplicativo->tipoOperazione);
+		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+		perror("");
+// 		close(descrittoreLogFileServer);		
+	}
+	
 					
 	//Se trovo il file lo spedisco al client.
 	else {
@@ -163,7 +173,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 			sprintf(stringaDaStampare, "  %d: [%s] Il client non risponde da 30 secondi. Operazione annullata\n",getpid(),pacchettoApplicativo->tipoOperazione);
 			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	//		closeSocket(socketConnesso); per ora lo lascio commentato e vedo che fa
-			remove(nomeFileDaSostituire);
+			remove(percorsoDestinazione);
 			free(nomeDaSostituire);
 			free(nomeFileDaSostituire);
 			free(buffer);
@@ -222,31 +232,35 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 				sprintf(stringaDaStampare, "  %d: Agrawala ha detto si'. :D Avviso il client che il commit è andato a buon fine\n", getpid());
 				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 				
-				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
-				strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
-				strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
-				sendPacchetto(socketConnesso, pacchettoApplicativo);
-				
-				sprintf(stringaDaStampare, "  %d: Spedita la conferma al client.\n", getpid());
-				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
-				
 				strcpy(nomeFileTemporaneo,IDgenerato);
 				strcat(nomeFileTemporaneo,".marina");
 
 				//Lo chiudo perchè dato che ci stavo scrivendo, il puntatore al file è alla fine e non copierebbe niente nel file originale
 				fclose(fileDiScritturaMomentanea);
-				fopen(percorsoDestinazione, "r");
-				copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
+				fileDiScritturaMomentanea=fopen(percorsoDestinazione, "r");
+// 				copiaFile(fileDiScritturaMomentanea, fileOriginaleDaCopiare, NULL, NULL, 0);
+				copiaFile(fileDiScritturaMomentanea, NULL, NULL, percorsoOrigine, 0, 1);
 				
 				spedisciAggiornamentiAiServer(fileDiScritturaMomentanea, nomeDaSostituire,IDgenerato,idServer);
 				
 				if(copiaFile > 0)
 					remove(percorsoDestinazione);
 				
+				//spedisco la conferma al client
+				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
+				strcpy(pacchettoApplicativo->tipoOperazione, "commit eseguito");
+				strcpy(pacchettoApplicativo->messaggio, "Commit eseguito con successo!");
+				sendPacchetto(socketConnesso, pacchettoApplicativo);
+				sprintf(stringaDaStampare, "  %d: Spedita la conferma al client.\n", getpid());
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+				
+				//queste righe mi servono per uscire dal ciclo while
 				bzero(pacchettoApplicativo, sizeof(struct pacchetto));
 				strcpy(pacchettoApplicativo->idTransazione,IDgenerato);
 				strcpy(pacchettoApplicativo->tipoOperazione,"scrivi file, pronto");
 				strcpy(pacchettoApplicativo->messaggio,"commit");
+				//queste due righe mi servono per uscire dal ciclo while
 				sprintf(stringaDaStampare, "  %d [%s] Operazione di scrittura terminata con successo\n",getpid(),pacchettoApplicativo->tipoOperazione);
 				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 			}
@@ -292,28 +306,14 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		sprintf(stringaDaStampare, "%d [%s]Errore nella chiusura del file temporaneo\n",getpid(),pacchettoApplicativo->tipoOperazione);
 		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		perror("");
-		free(nomeDaSostituire);
-		free(nomeFileDaSostituire);
-		free(buffer);
-		free(stringaImmessa);
-		free(percorsoDestinazione);
-		free(nomeFileTemporaneo);
-		free(percorsoOrigine);
 		close(descrittoreLogFileServer);
 	}
-	if(fclose(fileOriginaleDaCopiare)<0){
-		sprintf(stringaDaStampare, "%d [%s]Errore nella chiusura del file da copiare\n",getpid(),pacchettoApplicativo->tipoOperazione);
-		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
-		perror("");
-		free(nomeDaSostituire);
-		free(nomeFileDaSostituire);
-		free(buffer);
-		free(stringaImmessa);
-		free(percorsoDestinazione);
-		free(nomeFileTemporaneo);
-		free(percorsoOrigine);
-		close(descrittoreLogFileServer);		
-	}
+// 	if(fclose(fileOriginaleDaCopiare)<0){
+// 		sprintf(stringaDaStampare, "%d [%s]Errore nella chiusura del file da copiare\n",getpid(),pacchettoApplicativo->tipoOperazione);
+// 		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+// 		perror("");
+// 		close(descrittoreLogFileServer);		
+// 	}
 	
 	//ci vuole il free di tutte le malloc
 	free(nomeDaSostituire);
@@ -458,6 +458,7 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 	
 	close(descrittoreLogFileServer);
 }
+
 
 //Legge il file di configurazione e salva i parametri dentro le variabili passate
 void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, char *percorsoFileCondivisi, char* indirizzoDNS) {
@@ -621,35 +622,6 @@ int sincronizzazioneFile(char *directoryDeiFile){
 	close(descrittoreLogFileServer);
 	
 	return 1;
-}
-
-
-void writeFileWithLock(int descrittoreFile, char *contenutoDaScrivere, int stampaAvideo, int aggiungiData) {
-
-	char stringaFinaleDaScrivere[600];
-	
-	if(aggiungiData > 0) {
-		time_t dataEoraTimeT;
-		struct tm * dataEora;
-
-		time(&dataEoraTimeT);
-		dataEora = localtime(&dataEoraTimeT);
-
-		strftime(stringaFinaleDaScrivere,80,"%d/%m/%y %X ",dataEora);
-		strcat(stringaFinaleDaScrivere, contenutoDaScrivere);
-	}
-	else
-		strcpy(stringaFinaleDaScrivere, contenutoDaScrivere);
-	
-	struct flock opzioniDiFileLock = { F_WRLCK, SEEK_SET, 0, 0, 0 };
-	struct flock opzioniDiFileUnlock = { F_UNLCK, SEEK_SET, 0, 0, 0 };
-	
-	fcntl(descrittoreFile, F_SETLKW, &opzioniDiFileLock);
-	write(descrittoreFile,stringaFinaleDaScrivere,strlen(stringaFinaleDaScrivere));
-	fcntl(descrittoreFile, F_SETLKW, &opzioniDiFileUnlock);
-	
-	if(stampaAvideo > 0)
-		printf("%s", stringaFinaleDaScrivere);
 }
 
 void stampaIpEportaConLog(struct sockaddr_in *indirizzoIP) {

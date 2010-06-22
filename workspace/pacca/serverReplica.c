@@ -395,6 +395,52 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					dimensioneDatiRicevuti = 0;
 				}
 				
+				else if(strcmp(pacchettoRicevuto.tipoOperazione,"copia file") == 0) {
+					//marina da modificare
+					FILE *fileDaLeggere;
+					char IDTransazione[11],tempNomeFile[50];
+					
+					char nomeFileDaLeggere[(sizeof(pacchettoRicevuto.nomeFile))+(sizeof(directoryDeiFile))];
+					strcpy(tempNomeFile,pacchettoRicevuto.nomeFile);
+					strcpy(nomeFileDaLeggere,directoryDeiFile);
+					strcat(nomeFileDaLeggere,pacchettoRicevuto.nomeFile);
+					strcpy(IDTransazione,pacchettoRicevuto.idTransazione);
+					
+	//				strcat(nomeFileDaLeggere,directoryDeiFile);
+										
+					fileDaLeggere = fopen(nomeFileDaLeggere, "rb");
+					
+					bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
+					//se non trovo il file spedisco un messaggio e avverto il client
+					if(fileDaLeggere == NULL) {
+						printf("  %d: File \'%s\'non trovato\n", getpid(), pacchettoRicevuto.nomeFile);
+						strcpy(pacchettoRicevuto.tipoOperazione, "non inviare");
+						
+					}
+					else{
+						strcpy(pacchettoRicevuto.tipoOperazione,"copia file, pronto");
+						strcpy(pacchettoRicevuto.idTransazione,IDTransazione);
+						strcpy(pacchettoRicevuto.nomeFile,tempNomeFile);
+						
+						
+						sendPacchetto(&connessioneDiServizio,&pacchettoRicevuto);
+						bzero(&pacchettoRicevuto,sizeof(struct pacchetto));
+						receivePacchetto(&connessioneDiServizio,&pacchettoRicevuto,sizeof(struct pacchetto));
+						if(strcmp(pacchettoRicevuto.tipoOperazione, "copia file, pronto a ricevere") == 0) {
+			
+							spedisciFile(&connessioneDiServizio, fileDaLeggere, &pacchettoRicevuto);	
+							bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
+						}
+					}
+					/*
+					bzero(&pacchettoRicevuto,sizeof(struct pacchetto));
+					receivePacchetto(&connessioneDiServizio,pacchettoRicevuto,sizeof(struct pacchetto));
+					if(strcmp(pacchettoRicevuto.tipoOperazione, "copia file, pronto a ricevere") == 0) {
+					
+						bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
+					}*/
+				}
+				
 				//richiesta di uscita
 				else if (strcmp(pacchettoRicevuto.tipoOperazione, "uscita") == 0) {
 					bzero(&pacchettoDaInviare, sizeof(pacchettoDaInviare));

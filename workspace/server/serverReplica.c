@@ -26,10 +26,6 @@ main( int argc, char *argv[] ) {
 	leggiFileDiConfigurazione(&ID_numerico_server, &portaRichiesteNormali, &portaDNS, directoryDeiFile, stringaIndirizzoDNS);
 	
 	portaDiServizio = portaRichiesteNormali + 1000; //Dato che il server DNS manda solo le porte per le richieste normali, la porta di servizio sarà quella normale + 1000. In questo modo, quando agrawala andra' a chiedere le porte al DNS, aggiungera' mille per sapere quale sarà la porta di servizio
-	printf("%d : Avvio la sincronizzazione del file system..\n",getpid());
-	int esitoSincronizzazione=sincronizzazioneFile(directoryDeiFile);
-			if(esitoSincronizzazione<=0)
-				printf("sbagliato qualcosa\n");
 	
 	sprintf(bufferPerLog, "%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
 	writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
@@ -386,7 +382,7 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					fileDaAggiornare = fopen(nomeFileDaAggiornare, "a");
 					fileConAggiornamenti = fopen(nomeFileConAggiornamenti, "rb");
 					
-					copiaFile(fileConAggiornamenti, fileDaAggiornare, NULL, NULL, 0);
+					copiaFile(fileConAggiornamenti, fileDaAggiornare, NULL, NULL, 0, 0);
 					
 					fclose(fileDaAggiornare);
 					fclose(fileConAggiornamenti);
