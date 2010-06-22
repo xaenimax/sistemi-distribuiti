@@ -548,7 +548,7 @@ int sincronizzazioneFile(char *directoryDeiFile){
 		separaIpEportaDaStringa(riferimento_server, indirizzoIpDelServer, &portaDelServer, &idServer);
 		portaDelServer=portaDelServer+1000;
 		assegnaIPaServaddr(indirizzoIpDelServer, portaDelServer, &servaddr);
-		sprintf(stringaDaStampare, "Provo a connettermi al server %d con ip ", idServer);
+		sprintf(stringaDaStampare, "  %d: Provo a connettermi al server %d con ip ",getpid(), idServer);
 		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		stampaIpEportaConLog(&servaddr);
 		sprintf(stringaDaStampare, "\n");
@@ -559,7 +559,7 @@ int sincronizzazioneFile(char *directoryDeiFile){
 			closeSocket(&connessioneSincr);
 	}
 	if(i == 4 && errno == 111) {
-		sprintf(stringaDaStampare, "Non risulta nessun server attivo! :(\n");
+		sprintf(stringaDaStampare, "  %d: Non risulta nessun server attivo! :(\n", getpid());
 		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 		close(descrittoreLogFileServer);
 		//exit(0);
@@ -568,13 +568,13 @@ int sincronizzazioneFile(char *directoryDeiFile){
 	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
 	//chiede la lista dei file da copiare
 	strcpy(pacchettoApplicativo.tipoOperazione,"lista file");
-	printf("chiedo l'operazione %s\n",pacchettoApplicativo.tipoOperazione);
+	printf("  %d:[%s] Invio la richiesta di lista file\n",getpid(), pacchettoApplicativo.tipoOperazione);
 	sendPacchetto(&connessioneSincr,&pacchettoApplicativo);
 	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
 	receivePacchetto(&connessioneSincr,&pacchettoApplicativo,sizeof(struct pacchetto));
 	//salvo la lista file in un char da tokenizzare
 	strcpy(listaFile,pacchettoApplicativo.messaggio);
-	sprintf(stringaDaStampare, "La lista file ricevuta %s",pacchettoApplicativo.messaggio);
+	sprintf(stringaDaStampare, "  %d: Ho ricevuto la lista file.\n %s\n",getpid(), pacchettoApplicativo.messaggio);
 	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	
 
@@ -585,11 +585,12 @@ int sincronizzazioneFile(char *directoryDeiFile){
 		if((strcmp(nomeFile,".")==0)||(strcmp(nomeFile,"..")==0)||(strcmp(nomeFile,".svn")==0))
 			nomeFile=strtok(NULL,"\r\n");
 		else{
-			printf("\'%s\' nomefile \n",nomeFile);
+// 			printf("\'%s\' nomefile \n",nomeFile);
 			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 			strcpy(pacchettoApplicativo.idTransazione,IDTransazione);
 			strcpy(pacchettoApplicativo.nomeFile,nomeFile);
-			printf("File %s con id %s\n",pacchettoApplicativo.nomeFile,pacchettoApplicativo.idTransazione);
+			sprintf(stringaDaStampare,"  %d: Comincio a richiedere la copia aggiornata del file \'%s\'. IDtransazione: %s\n", getpid(), pacchettoApplicativo.nomeFile,pacchettoApplicativo.idTransazione);
+			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 			strcpy(pacchettoApplicativo.tipoOperazione, "copia file");
 			sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
 			//ricevo la dimensione del file
@@ -598,7 +599,7 @@ int sincronizzazioneFile(char *directoryDeiFile){
 			receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
 			
 			if(strcmp(pacchettoApplicativo.tipoOperazione,"copia file, pronto")==0){
-				printf("Il server è pronto\n");
+				printf("  %d: Sono pronto a ricevere il file.\n", getpid());
 				char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
 				strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
 				strcat(nomeFileDaScrivereConPercorso, nomeFile);
@@ -609,9 +610,11 @@ int sincronizzazioneFile(char *directoryDeiFile){
 				strcpy(pacchettoApplicativo.nomeFile,nomeFile);
 				sendPacchetto(&connessioneSincr,&pacchettoApplicativo);
 				
+				bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+				receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(struct pacchetto));
 				
 				riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
-			
+				printf("  %d: Ho finito la ricezione del file\n", getpid());
 			}
 		
 		}
@@ -619,6 +622,19 @@ int sincronizzazioneFile(char *directoryDeiFile){
 	}
 	//controlla le operazioni di copia file deve essere contrario rispetto a client server
 	
+	sprintf(stringaDaStampare,"  %d: Ho terminato la ricezione dei file aggiornati, chiudo la connessione\n", getpid());
+	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+	bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+	strcpy(pacchettoApplicativo.tipoOperazione, "uscita");
+	sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
+	
+	bzero(&pacchettoApplicativo, sizeof(struct pacchetto));
+	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(struct pacchetto));
+	
+	if(strcmp(pacchettoApplicativo.tipoOperazione, "Arrivederci") == 0)
+		printf("  %d: Connessione chiusa correttamente\n", getpid());
+	
+	closeSocket(&connessioneSincr);
 	close(descrittoreLogFileServer);
 	
 	return 1;

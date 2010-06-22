@@ -98,7 +98,7 @@ void spedisciFile(int *socketConnesso, FILE *fileDaLeggere, struct pacchetto *pa
 // 	sendPacchetto(socketConnesso, pacchettoApplicativo);
 }
 
-//Riceve un file spedito con la funzione spedisci file. Prima di richiamare questa funzione bisogna fare in modo che il A avvisi B che vuole spedire un e B risponda che è pronto a ricevere. Dopodichè bisogna fare un'ulteriore receive perchè A comunicherà a B la dimensione del file che per inviare
+//Riceve un file spedito con la funzione spedisci file. Prima di richiamare questa funzione bisogna fare in modo che A avvisi B che vuole spedire un file e B risponda che è pronto a ricevere. Dopodichè bisogna fare un'ulteriore receive perchè A comunicherà a B la dimensione del file che per inviare
 void riceviFile(int *socketConnesso, char *nomeFileDaScrivereConPercorso, struct pacchetto *pacchettoApplicativo) {	
 	
 	FILE *fileDaScrivere = fopen(nomeFileDaScrivereConPercorso, "wb");
