@@ -26,6 +26,14 @@ main( int argc, char *argv[] ) {
 	leggiFileDiConfigurazione(&ID_numerico_server, &portaRichiesteNormali, &portaDNS, directoryDeiFile, stringaIndirizzoDNS);
 	
 	portaDiServizio = portaRichiesteNormali + 1000; //Dato che il server DNS manda solo le porte per le richieste normali, la porta di servizio sarà quella normale + 1000. In questo modo, quando agrawala andra' a chiedere le porte al DNS, aggiungera' mille per sapere quale sarà la porta di servizio
+	sprintf(bufferPerLog, "%d : Avvio la sincronizzazione del file system..\n",getpid());
+	writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
+	
+	int esitoSincronizzazione=sincronizzazioneFile(directoryDeiFile);
+	if(esitoSincronizzazione<=0) {
+		sprintf(bufferPerLog, "%d: sbagliato qualcosa, o sono l'unico superstite! Aiuto, non lasciatemi solo!\n", getpid());
+		writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
+	}
 	
 	sprintf(bufferPerLog, "%d: Avvio del server numero (ID) %d. Porta richieste : %d; porta di servizio: %d\n", getpid(), ID_numerico_server, portaRichiesteNormali, portaDiServizio);
 	writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
@@ -222,7 +230,9 @@ void mainDelFiglio() {
 					char nomeFileDaScrivere[350];
 
 					strcpy(nomeFileDaScrivere, pacchettoApplicativo.nomeFile);
-					generaIDtransazione(pacchettoApplicativo.idTransazione);
+					
+					sprintf(bufferPerLog, "  %d:[%s] Mi preparo a inviare il file %s\n", getpid(), pacchettoApplicativo.tipoOperazione, pacchettoApplicativo.nomeFile);
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 					
 					bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
 					strcpy(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere");
@@ -407,6 +417,8 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					strcpy(IDTransazione,pacchettoRicevuto.idTransazione);
 					
 	//				strcat(nomeFileDaLeggere,directoryDeiFile);
+					sprintf(bufferPerLog, "  %d: Mi preparo a inviare il file \'%s\'\n", getpid(), nomeFileDaLeggere);
+					writeFileWithLock(descrittoreLogFileServer, bufferPerLog, 1, 1);
 										
 					fileDaLeggere = fopen(nomeFileDaLeggere, "rb");
 					
@@ -414,23 +426,23 @@ void mainDelFiglioDiServizio() { //sta in attesa di richieste di altri server.
 					//se non trovo il file spedisco un messaggio e avverto il client
 					if(fileDaLeggere == NULL) {
 						printf("  %d: File \'%s\'non trovato\n", getpid(), pacchettoRicevuto.nomeFile);
-						strcpy(pacchettoRicevuto.tipoOperazione, "non inviare");
-						
+						strcpy(pacchettoRicevuto.tipoOperazione, "copia file, non trovato");
+						sendPacchetto(&connessioneDiServizio,&pacchettoRicevuto);
+						dimensioneDatiRicevuti = 0;
 					}
 					else{
 						strcpy(pacchettoRicevuto.tipoOperazione,"copia file, pronto");
 						strcpy(pacchettoRicevuto.idTransazione,IDTransazione);
 						strcpy(pacchettoRicevuto.nomeFile,tempNomeFile);
 						
-						
 						sendPacchetto(&connessioneDiServizio,&pacchettoRicevuto);
 						bzero(&pacchettoRicevuto,sizeof(struct pacchetto));
 						receivePacchetto(&connessioneDiServizio,&pacchettoRicevuto,sizeof(struct pacchetto));
 						if(strcmp(pacchettoRicevuto.tipoOperazione, "copia file, pronto a ricevere") == 0) {
-			
 							spedisciFile(&connessioneDiServizio, fileDaLeggere, &pacchettoRicevuto);	
 							bzero(&pacchettoRicevuto, sizeof(struct pacchetto));
 						}
+						dimensioneDatiRicevuti = receivePacchetto(&connessioneDiServizio, &pacchettoRicevuto, sizeof(struct pacchetto));
 					}
 					/*
 					bzero(&pacchettoRicevuto,sizeof(struct pacchetto));
