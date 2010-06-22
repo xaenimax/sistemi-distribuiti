@@ -459,7 +459,6 @@ void chiediTuttiGliIpAlDNS(struct sockaddr_in *arrayDoveSalvareIndirizziDeiServe
 	close(descrittoreLogFileServer);
 }
 
-
 //Legge il file di configurazione e salva i parametri dentro le variabili passate
 void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, char *percorsoFileCondivisi, char* indirizzoDNS) {
 
@@ -527,7 +526,8 @@ void leggiFileDiConfigurazione(int *idServer, int *portaServer, int *portaDNS, c
 
 //sincronizza i file del server rispetto agli altri al primo avvio della macchina.
 int sincronizzazioneFile(char *directoryDeiFile){
-	char riferimento_server[600],indirizzoIpDelServer[100],stringaDaStampare[500];
+	char riferimento_server[600],indirizzoIpDelServer[100],stringaDaStampare[500],IDTransazione[20],listaFile[500];
+	char *nomeFile;
 	int connessioneSincr,i,portaDelServer,descrittoreLogFileServer;
 	struct timeval tempoDiAttesa;
 	struct sockaddr_in servaddr;
@@ -571,55 +571,50 @@ int sincronizzazioneFile(char *directoryDeiFile){
 	sendPacchetto(&connessioneSincr,&pacchettoApplicativo);
 	bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
 	receivePacchetto(&connessioneSincr,&pacchettoApplicativo,sizeof(struct pacchetto));
+	//salvo la lista file in un char da tokenizzare
+	strcpy(listaFile,pacchettoApplicativo.messaggio);
 	sprintf(stringaDaStampare, "La lista file ricevuta %s",pacchettoApplicativo.messaggio);
 	writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
 	
-	char *nomeFile=strtok(pacchettoApplicativo.messaggio,"\n");
-	generaIDtransazione(pacchettoApplicativo.idTransazione);
-	printf("Primo file %s con id %s\n",nomeFile,pacchettoApplicativo.idTransazione);
-	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-	strcpy(pacchettoApplicativo.tipoOperazione, "copia file");
-	strcpy(pacchettoApplicativo.nomeFile, nomeFile);
-	
-	//dico al client che sono pronto a ricevere
-	sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
-	//ricevo la dimensione del file
-	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
-	printf("Ricevuto %s\n",pacchettoApplicativo.messaggio);
-	
-	char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
-	strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
-	strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
 
-	riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
-							
-	bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-//	receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));		
-
+	generaIDtransazione(IDTransazione);
+	
+	nomeFile=strtok(listaFile,"\r\n");
 	while(nomeFile!=NULL){
-		nomeFile=strtok(pacchettoApplicativo.messaggio,NULL);
-		strcpy(nomeFile, pacchettoApplicativo.nomeFile);
-		generaIDtransazione(pacchettoApplicativo.idTransazione);
+		if((strcmp(nomeFile,".")==0)||(strcmp(nomeFile,"..")==0)||(strcmp(nomeFile,".svn")==0))
+			nomeFile=strtok(NULL,"\r\n");
+		else{
+			printf("\'%s\' nomefile \n",nomeFile);
+			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+			strcpy(pacchettoApplicativo.idTransazione,IDTransazione);
+			strcpy(pacchettoApplicativo.nomeFile,nomeFile);
+			printf("File %s con id %s\n",pacchettoApplicativo.nomeFile,pacchettoApplicativo.idTransazione);
+			strcpy(pacchettoApplicativo.tipoOperazione, "copia file");
+			sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
+			//ricevo la dimensione del file
+			bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
+			
+			receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
+			
+			if(strcmp(pacchettoApplicativo.tipoOperazione,"copia file, pronto")==0){
+				printf("Il server è pronto\n");
+				char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
+				strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
+				strcat(nomeFileDaScrivereConPercorso, nomeFile);
+				
+				bzero(&pacchettoApplicativo,sizeof(struct pacchetto));
+				strcpy(pacchettoApplicativo.tipoOperazione,"copia file, pronto a ricevere");
+				strcpy(pacchettoApplicativo.idTransazione,IDTransazione);
+				strcpy(pacchettoApplicativo.nomeFile,nomeFile);
+				sendPacchetto(&connessioneSincr,&pacchettoApplicativo);
+				
+				
+				riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
+			
+			}
 		
-		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		strcpy(pacchettoApplicativo.tipoOperazione, "copia file, pronto a ricevere");
-		strcpy(pacchettoApplicativo.nomeFile, nomeFile);
-		
-		//dico al client che sono pronto a ricevere
-		sendPacchetto(&connessioneSincr, &pacchettoApplicativo);
-		
-		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));
-		
-		char nomeFileDaScrivereConPercorso[sizeof(directoryDeiFile) + sizeof(pacchettoApplicativo.nomeFile)];
-		strcpy(nomeFileDaScrivereConPercorso, directoryDeiFile);
-		strcat(nomeFileDaScrivereConPercorso, pacchettoApplicativo.nomeFile);
-	
-		riceviFile(&connessioneSincr, nomeFileDaScrivereConPercorso, &pacchettoApplicativo);
-								
-		bzero(&pacchettoApplicativo, sizeof(pacchettoApplicativo));
-//		receivePacchetto(&connessioneSincr, &pacchettoApplicativo, sizeof(pacchettoApplicativo));				
+		}
+		nomeFile=strtok(NULL,"\r\n");
 	}
 	//controlla le operazioni di copia file deve essere contrario rispetto a client server
 	
