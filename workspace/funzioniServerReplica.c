@@ -120,7 +120,7 @@ int richiestaScritturaFile(char *IDgenerato, struct pacchetto *pacchettoApplicat
 		close(descrittoreLogFileServer);
 		return(0);
 	}
-	
+	//Marina: se il file da copiare non c'è se ne crea uno nuovo'
 	if(fileOriginaleDaCopiare==NULL){
 		sprintf(stringaDaStampare, "  %d:[%s] File \'%s\'non trovato\n", getpid(), pacchettoApplicativo->tipoOperazione, pacchettoApplicativo->nomeFile);
 		writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
@@ -380,12 +380,12 @@ int spedisciAggiornamentiAiServer(FILE* fileConAggiornamenti, char* nomeFileDaAg
 			
 			if(strcmp(pacchettoApplicativo.tipoOperazione, "aggiorna file, pronto a ricevere") == 0) {
 			
-			spedisciFile(&socketPerAggiornamenti, fileConAggiornamenti, &pacchettoApplicativo);
-			sprintf(stringaDaStampare, "  %d: File spedito con successo al server ", getpid());
-			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
-			stampaIpEportaConLog(&indirizzoServer[i]);
-			sprintf(stringaDaStampare, "\n");
-			writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 0);
+				spedisciFile(&socketPerAggiornamenti, fileConAggiornamenti, &pacchettoApplicativo);
+				sprintf(stringaDaStampare, "  %d: File spedito con successo al server ", getpid());
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 1);
+				stampaIpEportaConLog(&indirizzoServer[i]);
+				sprintf(stringaDaStampare, "\n");
+				writeFileWithLock(descrittoreLogFileServer, stringaDaStampare, 1, 0);
 			}
 			else {
 				sprintf(stringaDaStampare, "  %d: C\'è stato un\'errore durante l\'invio dell\'aggiornamento al server\n", getpid());
